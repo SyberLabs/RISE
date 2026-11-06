@@ -27,6 +27,12 @@
       "ref": "docs/plans/RISE-CHANGES.md",
       "note": "Replay of the seven published digests (git show origin/changes-data:<id>.json) with their included pull requests (title and today's body cut at 4,000 characters, so a body edited after its run cannot be ruled out) and their own sources: 2026-10-14, 10-15, 10-16, 10-16-2, 10-19 and 11-02 admit; 2026-10-26 beat 0 is refused for \"Two\" (\"Two changes this week.\", a count of the digest's own changes, refs none). Left to the owner; the rule was not weakened. Study probes: 22,000 for 22k, 9:00 for 09:00 and 1.5 for 1.50 now pass; twelve, v2 in a period ending on the 2nd, 26 readings in one starting on the 26th, six services and 30 percent in a week ending 30 October are now refused.",
       "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/admit.test.js",
+      "note": "Branch changes/number-rule, local, not pushed, after 074c3239. The owner's decision of 2026-11-06 for 2026-10-26 beat 0: the count of included changes is stated for every beat whatever its refs, and nothing else is added. Red first: 1 failed of 73 (\"Two changes this week.\" refused with two included changes). Green: 73 passed. Red again with the count removed: 1 failed, restored. Two fixtures that the count now states (\"Two\" with two included, \"one\" with one) were changed to keep testing what they meant to. npx vitest run scripts/changes/ src/core/changes/: 14 files, 250 passed. Seven-digest replay: all seven admit (0 refusal lines).",
+      "date": "2026-11-06"
     }
   ],
   "activity": [
@@ -37,10 +43,18 @@
     {
       "date": "2026-11-06T21:05:45.915Z",
       "summary": "Number rule built on the branch: scoped to cited pull requests, exact values in digits or words, period dates only as dates; one published beat refused, left to the owner"
+    },
+    {
+      "date": "2026-11-06T21:08:36.658Z",
+      "summary": "Owner decision: the count of included changes is stated for every beat; all seven published digests admit"
+    },
+    {
+      "date": "2026-11-06T21:08:46.522Z",
+      "summary": "Restored the earlier evidence entries beside the count decision's"
     }
   ],
-  "updatedAt": "2026-11-06T21:05:45.915Z",
-  "revision": 2,
+  "updatedAt": "2026-11-06T21:08:46.522Z",
+  "revision": 4,
   "summary": "The number rule reads each beat against the pull requests it cites, compares numbers by exact value in digits or words, and admits a date of the period only as a date.",
   "blocker": null
 }

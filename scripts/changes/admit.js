@@ -211,9 +211,9 @@ const COLOUR = /^.(?:#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^)]*\)).$/iu;
 const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? [])
   .filter(literal => !COLOUR.test(literal)).join(' ');
 
-/** The numbers, as written, that `texts` say and `pulls` do not state, a date of the period in its role excepted. */
-function unstatedIn(texts, pulls, period) {
-  const stated = statedNumbers(pulls);
+/** The numbers, as written, that `texts` say and neither `pulls` nor `also` state, a date of the period in its role excepted. */
+function unstatedIn(texts, pulls, period, also = []) {
+  const stated = new Set([...statedNumbers(pulls), ...also]);
   const parts = periodParts(period);
   const found = new Set();
   for (const text of texts) {
@@ -245,12 +245,14 @@ export function sceneNumberProblems(current, { pulls, period }) {
 /**
  * Numbers the Current says or shows that its sources do not state: each beat's against the pull requests in its own
  * refs (`sources`, beat index to pull request numbers; a beat with none may state only a date of the period), the
- * title and the figures against every included pull request.
+ * title and the figures against every included pull request. The count of included pull requests is computed by the
+ * host, not written by the composer, so every beat may state it; no other count is added.
  */
 export function numberProblems(current, { pulls, period, sources = {} }) {
+  const count = [String(pulls.length)];
   const beats = current.beats.flatMap((beat, index) => {
     const refs = Array.isArray(sources[index]) ? sources[index] : [];
-    return unstatedIn([beat?.say, beat?.show], pulls.filter(pull => refs.includes(pull.number)), period).map(number =>
+    return unstatedIn([beat?.say, beat?.show], pulls.filter(pull => refs.includes(pull.number)), period, count).map(number =>
       `beat ${index} says "${number}", which no pull request in its refs states; use only numbers written in the pull requests a beat cites, or say it without a number`);
   });
   return [

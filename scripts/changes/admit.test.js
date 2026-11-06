@@ -225,9 +225,9 @@ describe('admitComposition', () => {
       expect(admit({ current: current([...beats.slice(0, 2), { say: 'Three frames, 700 particles.' }]), sources: { 1: [652], 2: [653, 652] } }).ok).toBe(true);
     });
 
-    it('lets a beat that cites no pull request state no number but a date of the period', () => {
-      const verdict = admit({ current: current([{ say: 'Two changes, 12 to 19 October.' }, ...beats.slice(1)]), sources: { 1: [652], 2: [653] } });
-      expect(verdict.diagnostics).toEqual(['beat 0 says "Two", which no pull request in its refs states; use only numbers written in the pull requests a beat cites, or say it without a number']);
+    it('lets a beat that cites no pull request state no number but a date of the period and the count of included changes', () => {
+      const verdict = admit({ current: current([{ say: 'Three changes, 12 to 19 October.' }, ...beats.slice(1)]), sources: { 1: [652], 2: [653] } });
+      expect(verdict.diagnostics).toEqual(['beat 0 says "Three", which no pull request in its refs states; use only numbers written in the pull requests a beat cites, or say it without a number']);
     });
 
     describe('one statement against one cited pull request', () => {
@@ -283,7 +283,11 @@ describe('admitComposition', () => {
       it('reads "one of" as naming one member of a group, not a count, and still reads the group', () => {
         expect(refused('one of three frames', 'Three frames.')).toEqual([]);
         expect(refused('one of four frames', 'Three frames.')).toEqual(['four']);
-        expect(refused('one frame', 'Three frames.')).toEqual(['one']);
+        // Two included changes, so the count of included changes is 2 and states no "one".
+        const week = [{ number: 7, title: 'A change', body: 'Three frames.' }, { number: 8, title: 'Another change', body: '' }];
+        const said = say => numberProblems({ title: 'What changed in RISE', beats: [{ say }] }, { pulls: week, period: oct, sources: { 0: [7] } });
+        expect(said('one of three frames')).toEqual([]);
+        expect(said('one frame').join('\n')).toMatch(/says "one"/);
       });
 
       it('passes a day, month or year of the period inside a date only, never as a count', () => {
@@ -348,8 +352,13 @@ describe('admitComposition', () => {
         expect(refused('The attractor can now be a swarm of seven hundred particles, and the harmonograph can use two rotary pendulums.', swarm)).toEqual([]);
       });
 
-      it('2026-10-26 beat 0 is refused: its count of the week’s changes cites no pull request (left to the owner)', () => {
-        expect(refused('Two changes this week. A gate for public digests, and NVIDIA in RISE Live.', [], [])).toEqual(['Two']);
+      it('2026-10-26 beat 0: the count of included changes is stated for every beat, whatever its refs, and no other count is', () => {
+        const say = 'Two changes this week. A gate for public digests, and NVIDIA in RISE Live.';
+        const week = count => Array.from({ length: count }, (_, i) => ({ number: 730 + i, title: 'A change', body: '' }));
+        expect(refused(say, week(2), [])).toEqual([]);
+        expect(refused(say, week(3), [])).toEqual(['Two']);
+        expect(refused('2 changes this week.', week(2), [])).toEqual([]);
+        expect(refused('Three changes this week.', week(2), [])).toEqual(['Three']);
       });
     });
   });
