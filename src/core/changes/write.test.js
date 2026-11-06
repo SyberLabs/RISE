@@ -216,6 +216,19 @@ describe('issueFor', () => {
     expect(issueFor(digest()).body).not.toContain('replaces');
   });
 
+  it('lists a change whose route answer could not be read as unrouted, says so under the table, and still refuses an unknown reason', () => {
+    const fallback = { audience: 'skip', significance: 'minor', kind: 'records' };
+    const value = digest({ changes: [change(2), change(1), change(3, false, { reason: 'unrouted', route: fallback }), change(4, false, { reason: 'unrouted', route: fallback })] });
+    expect(value.changes.at(-1)).toMatchObject({ included: false, reason: 'unrouted' });
+    const { body } = issueFor(value);
+    expect(body).toContain('| skip | minor | records | no | unrouted |');
+    expect(body).toContain('Unrouted: the router\'s answer for 2 pull requests could not be read, so they took the fallback route skip/minor/records and were left out.');
+    expect(issueFor(digest()).body).not.toContain('Unrouted');
+    expect(issueFor(value, { unrouted: 5 }).body).toContain('Unrouted: the router\'s answer for 5 pull requests could not be read, so they took the fallback route skip/minor/records and were left out. 3 of them are not listed: a digest lists at most 60 changes.');
+    expect(() => digest({ changes: [change(2), change(1), change(3, false, { reason: 'because' })] })).toThrow(/reason must be one of routed, records-only, limit, unspoken, unrouted/);
+    expect(() => digest({ changes: [change(2), change(1, true, { reason: 'unrouted' })] })).toThrow(/is included, so its reason is routed/);
+  });
+
   it('links the reading and tables every change with its route', () => {
     const { title, body } = issueFor(digest());
     expect(title).toBe('What changed in RISE: 12–19 October');

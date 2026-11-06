@@ -1,0 +1,45 @@
+{
+  "id": "SVC-008",
+  "title": "A router fallback is recorded as unrouted, not routed",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A pull request whose router answer is unparseable, missing or off the menu keeps the fallback route skip/minor/records and is written with reason unrouted, never routed; a pull request the router chose to skip stays routed.",
+    "digestProblems admits unrouted on both sides of the branch, still refuses an unknown reason and an included change whose reason is not routed, and every digest already published still admits.",
+    "The page's How this was chosen says \"Left out: the router's answer for it could not be read\"; the issue tables the reason and says how many were unrouted under its table; the run log counts the unrouted pull requests, and a run where every answer fell back says so as its reason for writing nothing.",
+    "The first-pass score is unchanged by a fallback."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "scripts/changes/run-digest.test.js",
+      "note": "Branch fix/changes-unrouted-reason, local (Windows, not pushed): npx vitest run scripts/changes/route.test.js scripts/changes/run-digest.test.js src/core/changes/*.test.js src/app/changes.test.js worker/changes.test.js: 10 files, 223 passed. Red before the fix (5 failed: reason routed, contract refused unrouted); red again with the route.js line reverted (2 failed); green restored.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/route.test.js",
+      "note": "Review fixes on the same branch, local: every unrouted change listed ahead of the other left-out ones (70 candidates, 5 oldest unrouted, all listed), the Unrouted log line only above zero, and a genuine skip/minor/records week counted as routed. Red first (2 failed), green; red again with a value check in place of the identity check (1 failed), restored. Same targeted command: 10 files, 225 passed.",
+      "date": "2026-11-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-06T12:00:00.000Z",
+      "summary": "Opened from decision D10 of the RISE Changes v2 study: #760's skip on 2026-11-02 could not be told apart from a router fallback."
+    },
+    {
+      "date": "2026-11-06T18:36:27.161Z",
+      "summary": "Review council fixes: unrouted listed first, log only above zero, genuine skip tested"
+    }
+  ],
+  "updatedAt": "2026-11-06T18:36:27.161Z",
+  "revision": 2,
+  "summary": "A pull request whose router answer could not be read is written as unrouted, so a format slip is no longer indistinguishable from the router's choice on the page, in the issue and in the run log.",
+  "blocker": null
+}

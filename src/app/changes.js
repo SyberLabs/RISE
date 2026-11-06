@@ -117,6 +117,7 @@ function reasonWords({ included, reason, route }) {
   if (reason === 'records-only') return 'Left out: records only';
   if (reason === 'limit') return `Left out: over the ${LIMITS.included}-change limit`;
   if (reason === 'unspoken') return 'Left out: the reading did not speak of it';
+  if (reason === 'unrouted') return 'Left out: the router\'s answer for it could not be read';
   if (route.audience === 'skip') return 'Left out: skipped by the router';
   return route.significance === 'minor' ? 'Left out: minor' : 'Left out';
 }
