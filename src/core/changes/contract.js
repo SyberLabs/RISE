@@ -38,6 +38,7 @@ export const LIMITS = Object.freeze({
   included: 24,
   title: 200,
   body: 4000,
+  fullBody: 65536,
   files: 100,
   fileBytes: 256 * 1024,
   notes: 20,
