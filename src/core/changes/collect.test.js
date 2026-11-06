@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { boundary, collectMergedPulls, normalizePull, readIndex } from './collect.js';
+import { LIMITS } from './contract.js';
 
 const REPO = 'SyberLabs/RISE';
 const sha = n => String(n).padStart(40, 'a');
@@ -7,11 +8,14 @@ const sha = n => String(n).padStart(40, 'a');
 function node(number, { mergedAt, updatedAt = mergedAt, body = `Body of ${number}.`, files = ['src/a.js'], total = files.length, title = `Change ${number}` } = {}) {
   return {
     number, title, url: `https://github.com/${REPO}/pull/${number}`, mergedAt, updatedAt, body,
+    additions: files.length, deletions: 0,
     mergeCommit: { oid: sha(number) },
     labels: { nodes: [{ name: 'live' }] },
-    files: { totalCount: total, nodes: files.map(path => ({ path })) }
+    files: { totalCount: total, nodes: files.map(path => ({ path, additions: 1, deletions: 0 })) }
   };
 }
+
+const httpError = status => Object.assign(new Error(`gh: HTTP ${status}`), { stderr: `gh: HTTP ${status}` });
 
 function page(nodes, endCursor = null) {
   return JSON.stringify({ data: { repository: { pullRequests: { pageInfo: { hasNextPage: endCursor !== null, endCursor }, nodes } } } });
@@ -117,14 +121,29 @@ describe('normalizePull', () => {
     expect(pull.issues).toEqual([{ number: 12, title: 'Fix the thing' }]);
   });
 
-  it('reads a node without the fact fields as no commits, no issues and no counted lines', () => {
+  it('reads a node without commits or closing issues as none', () => {
     const pull = normalizePull(node(4, { mergedAt: '2026-10-13T10:00:00Z' }), REPO);
     expect(pull.fullBody).toBe('Body of 4.');
-    expect(pull.additions).toBe(0);
-    expect(pull.deletions).toBe(0);
-    expect(pull.fileStats).toEqual([{ path: 'src/a.js', additions: 0, deletions: 0 }]);
+    expect(pull.bodyCut).toBe(false);
     expect(pull.commits).toEqual([]);
     expect(pull.issues).toEqual([]);
+  });
+
+  it('refuses a node without line counts, which GitHub never leaves out, rather than counting 0', () => {
+    const base = node(5, { mergedAt: '2026-10-13T10:00:00Z' });
+    expect(() => normalizePull({ ...base, additions: undefined }, REPO)).toThrow('#5: no line counts');
+    expect(() => normalizePull({ ...base, deletions: null }, REPO)).toThrow('#5: no line counts');
+    expect(() => normalizePull({ ...base, files: { totalCount: 1, nodes: [{ path: 'src/a.js' }] } }, REPO)).toThrow('#5: no line counts');
+  });
+
+  it('cuts the whole body at the contract’s ceiling in characters, not UTF-16 units, and says so', () => {
+    expect(LIMITS.fullBody).toBe(65536);
+    const long = normalizePull(node(6, { mergedAt: '2026-10-13T10:00:00Z', body: '𝔵'.repeat(LIMITS.fullBody + 10) }), REPO);
+    expect(Array.from(long.fullBody)).toHaveLength(LIMITS.fullBody);
+    expect(long.bodyCut).toBe(true);
+    const exact = normalizePull(node(7, { mergedAt: '2026-10-13T10:00:00Z', body: 'y'.repeat(LIMITS.fullBody) }), REPO);
+    expect(exact.fullBody).toHaveLength(LIMITS.fullBody);
+    expect(exact.bodyCut).toBe(false);
   });
 
   it('reads a missing body as empty', () => {
@@ -195,6 +214,33 @@ describe('collectMergedPulls', () => {
     ])]);
     const pulls = await collectMergedPulls(gh, { repo: REPO, from, to });
     expect(pulls.map(pull => pull.number)).toEqual([2, 1]);
+  });
+
+  it('asks for a page again once, half as large, when GitHub answers 502 or 504', async () => {
+    for (const status of [502, 504]) {
+      const calls = [];
+      const answers = [page([node(5, { mergedAt: '2026-10-15T00:00:00Z' })], 'a'), httpError(status), page([node(4, { mergedAt: '2026-10-14T00:00:00Z' })])];
+      const gh = async args => {
+        calls.push(args);
+        const next = answers.shift();
+        if (next instanceof Error) throw next;
+        return next;
+      };
+      const pulls = await collectMergedPulls(gh, { repo: REPO, from, to });
+      expect(pulls.map(pull => pull.number)).toEqual([5, 4]);
+      expect(calls).toHaveLength(3);
+      expect(calls[0]).toContain('first=50');
+      expect(calls[1]).toEqual(expect.arrayContaining(['first=50', 'cursor=a']));
+      expect(calls[2]).toEqual(expect.arrayContaining(['first=25', 'cursor=a']));
+    }
+  });
+
+  it('fails when the smaller page fails too, or on any other HTTP error', async () => {
+    const twice = [httpError(502), httpError(502)];
+    await expect(collectMergedPulls(async () => { throw twice.shift(); }, { repo: REPO, from, to })).rejects.toThrow(/502/);
+    let asked = 0;
+    await expect(collectMergedPulls(async () => { asked += 1; throw httpError(500); }, { repo: REPO, from, to })).rejects.toThrow(/500/);
+    expect(asked).toBe(1);
   });
 
   it('fails on a GraphQL error instead of digesting half a week', async () => {

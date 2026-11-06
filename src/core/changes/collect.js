@@ -13,9 +13,9 @@ const COMMITS = 100;
 const ISSUES = 10;
 
 /** Newest-updated first: a pull request merged in the period was updated in it or later. */
-const MERGED_PULLS_QUERY = `query($owner: String!, $name: String!, $cursor: String) {
+const MERGED_PULLS_QUERY = `query($owner: String!, $name: String!, $cursor: String, $first: Int!) {
   repository(owner: $owner, name: $name) {
-    pullRequests(baseRefName: "main", states: MERGED, first: ${PAGE_SIZE}, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
+    pullRequests(baseRefName: "main", states: MERGED, first: $first, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
       pageInfo { hasNextPage endCursor }
       nodes {
         number title url body mergedAt updatedAt additions deletions
@@ -30,6 +30,8 @@ const MERGED_PULLS_QUERY = `query($owner: String!, $name: String!, $cursor: Stri
 }`;
 
 const notFound = error => /HTTP 404/.test(`${error?.stderr ?? ''} ${error?.message ?? ''}`);
+/** A gateway that gave up on a heavy page: the same page, half as large, usually answers. */
+const gaveUp = error => /HTTP 50[24]/.test(`${error?.stderr ?? ''} ${error?.message ?? ''}`);
 
 /** index.json on the data branch, or null before the first digest. */
 export async function readIndex(gh, repo) {
@@ -67,8 +69,7 @@ function clip(text, length) {
   return characters.length <= length ? text : `${characters.slice(0, length - 1).join('')}…`;
 }
 
-/** A line count GitHub gave, or 0 for a node recorded before the query asked for it. */
-const lines = value => (Number.isInteger(value) && value >= 0 ? value : 0);
+const counted = value => Number.isInteger(value) && value >= 0;
 const oneLine = text => clip(text.replace(/\s+/g, ' ').trim(), LIMITS.title);
 
 /** One GraphQL node as the contract's and the fact card's fields, or an error that names what is wrong. */
@@ -80,22 +81,27 @@ export function normalizePull(node, repo) {
   if (!Number.isFinite(Date.parse(node.mergedAt))) throw new Error(`#${number}: no merge time`);
   const oid = node.mergeCommit?.oid;
   if (typeof oid !== 'string' || !/^[0-9a-f]{40}$/.test(oid)) throw new Error(`#${number}: the merge commit is not a 40-character sha`);
-  const body = typeof node.body === 'string' ? node.body : '';
   const files = (node.files?.nodes ?? []).filter(file => typeof file?.path === 'string').slice(0, LIMITS.files);
+  // GitHub's schema makes every line count non-null: one missing is a fault, never a count of 0 a page could publish.
+  if (![node.additions, node.deletions, ...files.flatMap(file => [file.additions, file.deletions])].every(counted)) {
+    throw new Error(`#${number}: no line counts`);
+  }
+  const characters = Array.from(typeof node.body === 'string' ? node.body : '');
   return {
     number,
     title: oneLine(node.title),
-    body: Array.from(body).slice(0, LIMITS.body).join(''),
-    fullBody: body,
+    body: characters.slice(0, LIMITS.body).join(''),
+    fullBody: characters.slice(0, LIMITS.fullBody).join(''),
+    bodyCut: characters.length > LIMITS.fullBody,
     url: node.url,
     mergedAt: node.mergedAt,
     mergeSha: oid,
     labels: (node.labels?.nodes ?? []).map(label => label?.name).filter(name => typeof name === 'string'),
     files: files.map(file => file.path),
     fileCount: Number.isInteger(node.files?.totalCount) ? node.files.totalCount : Infinity,
-    fileStats: files.map(file => ({ path: file.path, additions: lines(file.additions), deletions: lines(file.deletions) })),
-    additions: lines(node.additions),
-    deletions: lines(node.deletions),
+    fileStats: files.map(file => ({ path: file.path, additions: file.additions, deletions: file.deletions })),
+    additions: node.additions,
+    deletions: node.deletions,
     commits: (node.commits?.nodes ?? []).map(entry => entry?.commit?.message)
       .filter(message => typeof message === 'string' && message.trim())
       .slice(0, COMMITS)
@@ -114,10 +120,20 @@ export async function collectMergedPulls(gh, { repo, from, to }) {
   const end = Date.parse(to);
   const pulls = [];
   let cursor = null;
-  for (;;) {
-    const args = ['api', 'graphql', '-f', `query=${MERGED_PULLS_QUERY}`, '-f', `owner=${owner}`, '-f', `name=${name}`];
+  const ask = first => {
+    const args = ['api', 'graphql', '-f', `query=${MERGED_PULLS_QUERY}`, '-f', `owner=${owner}`, '-f', `name=${name}`, '-F', `first=${first}`];
     if (cursor !== null) args.push('-f', `cursor=${cursor}`);
-    const response = JSON.parse(await gh(args));
+    return gh(args);
+  };
+  for (;;) {
+    let text;
+    try {
+      text = await ask(PAGE_SIZE);
+    } catch (error) {
+      if (!gaveUp(error)) throw error;
+      text = await ask(PAGE_SIZE / 2);
+    }
+    const response = JSON.parse(text);
     if (Array.isArray(response?.errors) && response.errors.length) {
       throw new Error(`GitHub refused the query: ${String(response.errors[0]?.message).slice(0, 200)}`);
     }

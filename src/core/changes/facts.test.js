@@ -2,18 +2,19 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { collectMergedPulls } from './collect.js';
-import { BODY_CEILING, factCard } from './facts.js';
+import { factCard } from './facts.js';
 
 const REPO = 'SyberLabs/RISE';
 const sha = n => String(n).padStart(40, 'a');
 
 /** A collected pull request as normalizePull returns it; `files` are [path, additions, deletions]. */
-function pull({ files = [['src/core/a.js', 3, 1]], fileCount = files.length, body = 'Body.', ...rest } = {}) {
+function pull({ files = [['src/core/a.js', 3, 1]], fileCount = files.length, body = 'Body.', bodyCut = false, ...rest } = {}) {
   return {
     number: 700,
     title: 'A change',
     body: Array.from(body).slice(0, 4000).join(''),
     fullBody: body,
+    bodyCut,
     url: `https://github.com/${REPO}/pull/700`,
     mergedAt: '2026-10-13T10:00:00Z',
     mergeSha: sha(700),
@@ -48,18 +49,24 @@ describe('factCard: areas', () => {
   });
 
   it('sums each area’s files and lines, the most changed lines first, then by name', () => {
-    const card = factCard(pull({ files: [['docs/a.md', 1, 0], ['src/core/a.js', 30, 5], ['src/core/b.js', 4, 1], ['worker/x.mjs', 1, 0]] }));
+    const card = factCard(pull({ files: [['worker/x.mjs', 1, 0], ['docs/a.md', 1, 0], ['docs/b.md', 1, 0], ['src/core/a.js', 30, 5], ['scripts/x/y.js', 1, 0]] }));
     expect(card.areas).toEqual([
-      { area: 'src/core', files: 2, additions: 34, deletions: 6 },
-      { area: 'docs', files: 1, additions: 1, deletions: 0 },
+      { area: 'src/core', files: 1, additions: 30, deletions: 5 },
+      { area: 'docs', files: 2, additions: 2, deletions: 0 },
+      { area: 'scripts/x', files: 1, additions: 1, deletions: 0 },
       { area: 'worker', files: 1, additions: 1, deletions: 0 }
     ]);
   });
 });
 
 describe('factCard: flags are path rules', () => {
-  it('dependency: package.json and lockfiles at any depth', () => {
-    for (const path of ['package.json', 'package-lock.json', 'worker/package.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml']) {
+  it('dependency: a package manifest or lockfile at any depth', () => {
+    const manifests = [
+      'package.json', 'package-lock.json', 'worker/package.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lock', 'bun.lockb',
+      'go.mod', 'go.sum', 'Cargo.toml', 'Cargo.lock', 'poetry.lock', 'pyproject.toml', 'requirements.txt', 'Pipfile.lock',
+      'Gemfile', 'Gemfile.lock', 'composer.json', 'composer.lock', 'services/api/go.sum'
+    ];
+    for (const path of manifests) {
       expect(flags([path]).dependency, path).toBe(true);
     }
     for (const path of ['src/packages.js', 'docs/package.json.md']) expect(flags([path]).dependency, path).toBe(false);
@@ -98,21 +105,15 @@ describe('factCard: flags are path rules', () => {
 });
 
 describe('factCard: the body', () => {
-  it('is whole, though the pull request’s body for the v1 composer is cut at 4,000 characters', () => {
+  it('is the collected whole body, though the pull request’s body for the v1 composer is cut at 4,000 characters', () => {
     const body = 'x'.repeat(8225);
     const card = factCard(pull({ body }));
     expect(card.body).toBe(body);
     expect(card.bodyCut).toBe(false);
   });
 
-  it('is cut at the ceiling in characters, not UTF-16 units, and says so', () => {
-    const body = '𝔵'.repeat(BODY_CEILING + 10);
-    const card = factCard(pull({ body }));
-    expect(BODY_CEILING).toBe(65536);
-    expect(Array.from(card.body)).toHaveLength(BODY_CEILING);
-    expect(card.bodyCut).toBe(true);
-    const exact = factCard(pull({ body: 'y'.repeat(BODY_CEILING) }));
-    expect(exact.bodyCut).toBe(false);
+  it('carries collect’s cut at the ceiling', () => {
+    expect(factCard(pull({ body: 'y', bodyCut: true })).bodyCut).toBe(true);
   });
 });
 

@@ -1,15 +1,16 @@
 /**
  * Fact cards (docs/plans/RISE-CHANGES.md, Fact cards): what GitHub states about
  * one collected pull request, computed by code with no model. The card keeps the
- * whole body for the model stages only; nothing on it is written to a published
- * file. Contributor text on it (body, commit subjects, issue titles) is raw
+ * whole body (up to LIMITS.fullBody, cut by collect) for the model stages only;
+ * nothing on it is written to a published file. Contributor text on it (body, commit subjects, issue titles) is raw
  * data, quoted where a prompt is built.
  */
 
-/** Characters, not UTF-16 units: a body past this is cut, so one pull request cannot blow a model call. */
-export const BODY_CEILING = 65536;
-
-const DEPENDENCY_FILES = new Set(['package.json', 'package-lock.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml']);
+const DEPENDENCY_FILES = new Set([
+  'package.json', 'package-lock.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lock', 'bun.lockb',
+  'go.mod', 'go.sum', 'Cargo.toml', 'Cargo.lock', 'poetry.lock', 'pyproject.toml', 'requirements.txt', 'Pipfile.lock',
+  'Gemfile', 'Gemfile.lock', 'composer.json', 'composer.lock'
+]);
 const TWO_LEVEL_ROOTS = new Set(['src', 'scripts']);
 
 const basename = path => path.slice(path.lastIndexOf('/') + 1);
@@ -56,14 +57,13 @@ function flagsOf(paths, fileCount) {
 
 /** One collected pull request (collect.js normalizePull) as its fact card. */
 export function factCard(pull) {
-  const characters = Array.from(pull.fullBody);
   const files = pull.fileStats.map(({ path, additions, deletions }) => ({ path, additions, deletions }));
   return {
     number: pull.number,
     mergeSha: pull.mergeSha,
     title: pull.title,
-    body: characters.length > BODY_CEILING ? characters.slice(0, BODY_CEILING).join('') : pull.fullBody,
-    bodyCut: characters.length > BODY_CEILING,
+    body: pull.fullBody,
+    bodyCut: pull.bodyCut,
     labels: [...pull.labels],
     commits: [...pull.commits],
     files,
