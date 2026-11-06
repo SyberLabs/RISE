@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { admitComposition, figureNumberProblems, parseModelJson } from './admit.js';
+import { admitComposition, figureNumberProblems, numberProblems, parseModelJson } from './admit.js';
 
 const MODEL = 'claude-sonnet-5-5';
 const period = { from: '2026-10-12T09:00:00.000Z', to: '2026-10-19T09:00:00.000Z' };
@@ -195,7 +197,7 @@ describe('admitComposition', () => {
     it('refuses a number that no included pull request states', () => {
       const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'It is 40 percent faster.' }]), sources: { 1: [652], 2: [653] } });
       expect(verdict.ok).toBe(false);
-      expect(verdict.diagnostics.join('\n')).toMatch(/"40"/);
+      expect(verdict.diagnostics).toEqual(['beat 2 (refs [653]) says "40", which none of them states; use only numbers written in the pull requests a beat cites, or say it without a number']);
     });
 
     it('refuses a number written in a figure’s visible text', () => {
@@ -214,8 +216,239 @@ describe('admitComposition', () => {
     });
 
     it('reads what is shown as well as what is said', () => {
-      const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'Faster.', show: 'Now 3x faster.' }]), sources: { 1: [652], 2: [653] } });
-      expect(verdict.diagnostics.join('\n')).toMatch(/"3"/);
+      const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'Faster.', show: 'Now 4x faster.' }]), sources: { 1: [652], 2: [653] } });
+      expect(verdict.diagnostics.join('\n')).toMatch(/"4"/);
+    });
+
+    it('holds a beat’s numbers to the pull requests that beat cites, not to the whole week', () => {
+      const elsewhere = admit({ current: current([...beats.slice(0, 2), { say: 'Three frames, 700 particles.' }]), sources: { 1: [652], 2: [653] } });
+      expect(elsewhere.ok).toBe(false);
+      expect(elsewhere.diagnostics).toEqual(['beat 2 (refs [653]) says "700", which none of them states; #652 states it: cite #652 on this beat if it speaks of that change, or say it without a number']);
+      expect(admit({ current: current([...beats.slice(0, 2), { say: 'Three frames, 700 particles.' }]), sources: { 1: [652], 2: [653, 652] } }).ok).toBe(true);
+    });
+
+    it('lets a beat that cites no pull request state no number but a date of the period and the count of included changes', () => {
+      const verdict = admit({ current: current([{ say: 'Three changes, 12 to 19 October.' }, ...beats.slice(1)]), sources: { 1: [652], 2: [653] } });
+      expect(verdict.diagnostics).toEqual(['beat 0 (refs []) says "Three", which none of them states; #653 states it: cite #653 on this beat if it speaks of that change, or say it without a number']);
+    });
+
+    it('counts only the included changes some beat cites: one no beat cites is left out of the reading', () => {
+      const week = [pull(652, 'The swarm draws 700 particles.'), pull(653, 'Frames.'), pull(654, 'Faster.')];
+      const said = say => numberProblems(current([{ say }, { say: 'Particles.' }, { say: 'Frames.' }]), { pulls: week, period, sources: { 1: [652], 2: [653] } });
+      expect(said('Two changes this week.')).toEqual([]);
+      expect(said('2 pull requests this week.')).toEqual([]);
+      expect(said('Three changes this week.').join('\n')).toMatch(/says "Three"/);
+      // The count states only a count of changes, never another count that happens to equal it.
+      expect(said('Two services were added.').join('\n')).toMatch(/says "Two"/);
+      // Read where the number stands: a count of changes later in the beat does not admit an earlier "Two".
+      expect(said('Two services were added across two changes.').join('\n')).toMatch(/says "Two"/);
+    });
+
+    it('holds the title to the pull requests the beats cite, with no count of the week’s changes', () => {
+      const week = [pull(7, 'The swarm draws 700 particles.'), pull(8, 'Three frames.')];
+      const titled = title => numberProblems({ title, beats: [{ say: 'Particles.' }] }, { pulls: week, period, sources: { 0: [7] } });
+      expect(titled('This week: 700 particles')).toEqual([]);
+      expect(titled('This week: three frames')).toEqual(['The title says "three", which no pull request a beat cites states; use only numbers written in the pull requests, or say it without a number']);
+      expect(titled('One change this week').join('\n')).toMatch(/The title says "One"/);
+    });
+
+    it('admits the 2026-11-02 kit figure’s 22000 for #765’s 22k lines, on the composer’s own path', () => {
+      const cleanup = { number: 765, title: 'Delete dead code: 22k lines of unused files, exports, locals and CSS', body: 'Two rounds of dead-code deletion, each a multi-agent workflow.' };
+      const bars = { kind: 'bars', title: 'Dead code removed', max: 22000, items: [{ label: 'Rounds', value: 2 }, { label: 'Lines', value: 22000, changed: true }] };
+      const value = {
+        current: current([{ say: 'This week, a cleanup.' }, { say: 'Two rounds removed about 22 thousand lines.', refs: [765] }, { say: 'That is the week.' }]),
+        pictures: [{ beat: 1, refs: [765], kit: bars }]
+      };
+      const verdict = admitComposition(text(value), { pulls: [cleanup], model: MODEL, period });
+      expect(verdict.diagnostics).toBeUndefined();
+      expect(verdict.ok).toBe(true);
+      const off = admitComposition(text({ ...value, pictures: [{ beat: 1, refs: [765], kit: { ...bars, items: [bars.items[0], { ...bars.items[1], value: 21000 }] } }] }), { pulls: [cleanup], model: MODEL, period });
+      expect(off.diagnostics.join('\n')).toMatch(/"21000", which no pull request the picture cites states/);
+    });
+
+    it('reads the seven published digests’ beats and titles against their own pull requests with no refusal', () => {
+      const published = JSON.parse(readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures/published-digests.json'), 'utf8'));
+      expect(published.map(digest => digest.id)).toEqual(['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-16-2', '2026-10-19', '2026-10-26', '2026-11-02']);
+      for (const digest of published) {
+        const sources = Object.fromEntries(digest.beats.map((beat, index) => [index, beat.refs]));
+        const beatsOnly = digest.beats.map(({ say, show }) => ({ say, show }));
+        expect([digest.id, numberProblems({ title: digest.title, beats: beatsOnly }, { pulls: digest.pulls, period: digest.period, sources })]).toEqual([digest.id, []]);
+      }
+    });
+
+    describe('one statement against one cited pull request', () => {
+      const nov = { from: '2026-10-26T15:53:18Z', to: '2026-11-02T19:00:49Z' };
+      const oct = { from: '2026-10-23T09:00:00Z', to: '2026-10-30T09:00:00Z' };
+      /** The numbers `say` is refused for when its beat cites one pull request whose body is `body`, as written. */
+      const refused = (say, body, when = oct) => numberProblems(
+        { title: 'What changed in RISE', beats: [{ say }] },
+        { pulls: [{ number: 7, title: 'A change', body }], period: when, sources: { 0: [7] } }
+      ).map(line => /says "([^"]+)"/u.exec(line)[1]);
+
+      it('reads 22k, 22,000 and 22 thousand as one number, and still refuses 22,000 for 21,980 (2026-11-02, #765)', () => {
+        expect(refused('removed 22,000 lines', 'Delete dead code: 22k lines', nov)).toEqual([]);
+        expect(refused('about 22 thousand lines', 'Delete dead code: 22k lines', nov)).toEqual([]);
+        expect(refused('22k lines', 'removed 22,000 lines', nov)).toEqual([]);
+        expect(refused('about 22,000 lines', 'Net: +450 / -21,980.', nov)).toEqual(['22,000']);
+        expect(refused('about 23 thousand lines', 'Delete dead code: 22k lines', nov)).toEqual(['23 thousand']);
+        expect(refused('22k files', 'a 22 KB bundle')).toEqual(['22k']);
+      });
+
+      it('drops a trailing zero after the point and a leading zero, and still refuses a different number', () => {
+        expect(refused('costs 1.5', 'costs 1.50 per run')).toEqual([]);
+        expect(refused('runs at 9:00', 'runs at 09:00 UTC')).toEqual([]);
+        expect(refused('costs 1.5', 'costs 1.55 per run')).toEqual(['1.5']);
+        expect(refused('runs at 19:00', 'runs at 09:00 UTC')).toEqual(['19']);
+      });
+
+      it('never converts a unit: 1.5 s and 1,500 ms stay two numbers', () => {
+        expect(refused('now takes 1.5 s', 'now takes 1,500 ms')).toEqual(['1.5']);
+        expect(refused('now takes 1,500 ms', 'now takes 1.5 s')).toEqual(['1,500']);
+      });
+
+      it('reads a comma as a thousands separator only before groups of three digits', () => {
+        expect(refused('15 frames', 'a ratio of 1,5')).toEqual(['15']);
+      });
+
+      it('reads a number written in words as that number', () => {
+        expect(refused('twelve times faster', 'faster')).toEqual(['twelve']);
+        expect(refused('six services', 'the services')).toEqual(['six']);
+        expect(refused('twelve times faster', '12 times faster')).toEqual([]);
+        expect(refused('12 times faster', 'twelve times faster')).toEqual([]);
+        expect(refused('seven hundred particles', '700 particles')).toEqual([]);
+        expect(refused('seven hundred and fifty particles', '700 particles')).toEqual(['seven hundred and fifty']);
+        expect(refused('twenty-four texts', '24 texts')).toEqual([]);
+        expect(refused('twenty-five texts', '24 texts')).toEqual(['twenty-five']);
+        expect(refused('two thousand runs', '2,000 runs')).toEqual([]);
+        expect(refused('a thousand runs', 'many runs')).toEqual(['a thousand']);
+        expect(refused('one and a half seconds', 'now takes 1.5 s')).toEqual([]);
+        expect(refused('two and a half seconds', 'now takes 1.5 s')).toEqual(['two and a half']);
+        expect(refused('Ten texts', '10 texts')).toEqual([]);
+      });
+
+      it('reads "one of" as naming one member of a group, not a count, and still reads the group', () => {
+        expect(refused('one of three frames', 'Three frames.')).toEqual([]);
+        expect(refused('one of four frames', 'Three frames.')).toEqual(['four']);
+        // Two changes are cited, so the count of cited changes is 2 and states no "one".
+        const week = [{ number: 7, title: 'A change', body: 'Three frames.' }, { number: 8, title: 'Another change', body: '' }];
+        const said = say => numberProblems({ title: 'What changed in RISE', beats: [{ say }, { say: 'More.' }] }, { pulls: week, period: oct, sources: { 0: [7], 1: [8] } });
+        expect(said('one of three frames')).toEqual([]);
+        expect(said('one frame').join('\n')).toMatch(/says "one"/);
+      });
+
+      it('passes a day, month or year of the period inside a date only, never as a count', () => {
+        expect(refused('30 percent faster', 'faster')).toEqual(['30']);
+        expect(refused('on 30 October', 'faster')).toEqual([]);
+        expect(refused('on October 30, 2026', 'faster')).toEqual([]);
+        expect(refused('on 2026-10-30', 'faster')).toEqual([]);
+        expect(refused('from 23 to 30 October 2026', 'faster')).toEqual([]);
+        expect(refused('in October 2026', 'faster')).toEqual([]);
+        expect(refused('26 readings', 'more readings', nov)).toEqual(['26']);
+        expect(refused('from 26 October to 2 November', 'more readings', nov)).toEqual([]);
+        expect(refused('2026 readings', 'more readings')).toEqual(['2026']);
+        expect(refused('on 29 October', 'faster')).toEqual(['29']);
+        expect(refused('on 10 October', 'faster')).toEqual(['10']);
+        expect(refused('since 29 October', 'merged on 29 October')).toEqual([]);
+        expect(refused('on 30 October, 23 readings', 'more readings')).toEqual(['23']);
+      });
+
+      it('reads a day after a month name only when the date ends there or runs to a second day that does', () => {
+        expect(refused('In October 26 readings were added.', 'more readings', nov)).toEqual(['26']);
+        expect(refused('by October 26 and 2 new texts', 'more texts', nov)).toEqual(['26', '2']);
+        expect(refused('on October 30', 'faster')).toEqual([]);
+        expect(refused('from October 23 to 30.', 'faster')).toEqual([]);
+        expect(refused('from October 23 to 30 readings', 'faster')).toEqual(['23', '30']);
+      });
+
+      it('reads an ordinal day and a short month name with its point as a date', () => {
+        for (const said of ['on 30th October', 'on the 30th of October', 'on October 30th, 2026', 'on Oct. 30', 'on Oct. 30, 2026']) expect([said, refused(said, 'faster')]).toEqual([said, []]);
+        expect(refused('the 30th release', 'faster')).toEqual(['30th']);
+      });
+
+      it('reads a capitalised identifier as one whole token, never as its digits', () => {
+        expect(refused('35 models', 'Live: name any OpenRouter model in the room (LIVE-035)')).toEqual(['35']);
+        expect(refused('LIVE-035 lets the room name a model', 'Live: name any OpenRouter model in the room (LIVE-035)')).toEqual([]);
+        expect(refused('30 texts', 'The Mystery School corpus (RDR-030, PR 1)')).toEqual(['30']);
+      });
+
+      it('reads no word as a number that is only a name on every object', () => {
+        expect(refused('RISE now builds a constructor for each scene.', 'faster')).toEqual([]);
+      });
+
+      it('reads "one" as a pronoun after no, this, that, each, any, every, the and which, or joined to a word by a hyphen, and as a count otherwise', () => {
+        // Two changes are cited, so the count of included changes states 2, not "one".
+        const counted = say => numberProblems(
+          { title: 'What changed in RISE', beats: [{ say }, { say: 'More.' }] },
+          { pulls: [{ number: 7, title: 'A change', body: 'faster' }, { number: 8, title: 'Another change', body: '' }], period: oct, sources: { 0: [7], 1: [8] } }
+        ).map(line => /says "([^"]+)"/u.exec(line)[1]);
+        for (const said of ['no one asked', 'this one is faster', 'that one is slower', 'each one is checked', 'any one will do', 'every one is drawn', 'the one that changed', 'which one changed', 'a one-time fix', 'a one-line change']) {
+          expect([said, counted(said)]).toEqual([said, []]);
+        }
+        expect(counted('one more release')).toEqual(['one']);
+        expect(counted('one service')).toEqual(['one']);
+        expect(counted('twenty-one services')).toEqual(['twenty-one']);
+      });
+
+      it('reads a version as one whole token', () => {
+        expect(refused('schema v2', 'a new schema', nov)).toEqual(['v2']);
+        expect(refused('schema v2', 'the schema rise.current.v2')).toEqual([]);
+        expect(refused('Claude Code 2.1.287', 'pins Claude Code 2.1.287')).toEqual([]);
+        expect(refused('Claude Code 2.1', 'pins Claude Code 2.1.287')).toEqual(['2.1']);
+        expect(refused('Node 22.12', 'requires Node 22.12.0')).toEqual(['22.12']);
+        expect(refused('version 3.5', 'bumps to 3.5.1')).toEqual(['3.5']);
+      });
+
+      it('keeps reading the forms it read before', () => {
+        expect(refused('40 percent', 'cut 40%')).toEqual([]);
+        expect(refused('took 23-54 s', 'took 23 to 54 s')).toEqual([]);
+        expect(refused('now 734 KB', 'now 735 KB')).toEqual(['734']);
+      });
+    });
+
+    describe('published beats, against the words of the pull requests they cite', () => {
+      const ofPeriod = { from: '2026-10-16T10:01:58.703Z', to: '2026-10-19T16:05:26.845Z' };
+      const refused = (say, cited, refs = cited.map(pull => pull.number)) => numberProblems(
+        { title: 'This week in RISE', beats: [{ say }] }, { pulls: cited, period: ofPeriod, sources: { 0: refs } }
+      ).map(line => /says "([^"]+)"/u.exec(line)[1]);
+      const school = [
+        { number: 710, title: 'The Mystery School corpus: ten Standard Ebooks texts served beside the Archive (RDR-030, PR 1)', body: 'The School goes from 4 to 14 readable.' },
+        { number: 712, title: 'The Mystery School corpus: the Gutenberg adapter and 24 texts (RDR-030, PR 2)', body: 'The School goes from 14 to 38 readable.' }
+      ];
+
+      it('2026-10-19 beat 7: numbers in words, each stated by one of the two pull requests it cites', () => {
+        const say = 'Then the corpus grew. Ten Standard Ebooks texts came first, then twenty-four from Project Gutenberg, taking the school from four readable texts to fourteen, then thirty-eight.';
+        expect(refused(say, school)).toEqual([]);
+        expect(refused(say, school, [710])).toEqual(['twenty-four', 'thirty-eight']);
+      });
+
+      it('2026-11-02 beat 24: 22 thousand for the title’s 22k, two for its body’s Two', () => {
+        const cleanup = [{ number: 765, title: 'Delete dead code: 22k lines of unused files, exports, locals and CSS', body: 'Two rounds of dead-code deletion, each a multi-agent workflow.' }];
+        expect(refused('Two rounds removed about 22 thousand lines of unused files and exports.', cleanup)).toEqual([]);
+      });
+
+      it('2026-11-02 beat 6: one and a half seconds for 1.5 s', () => {
+        const reasoning = [{ number: 741, title: 'Live: name any OpenRouter model in the room (free Nemotron included), asked with reasoning off (LIVE-035)', body: 'A reading on a model that "thinks" by default now takes about 1.5 s, not 23 to 54 s.' }];
+        expect(refused('A reading on a model that thinks by default now takes about one and a half seconds, not 23 to 54. RISE now asks for reasoning to be off.', reasoning)).toEqual([]);
+      });
+
+      it('2026-10-15 beat 1: seven hundred and two, as the pull request writes them', () => {
+        const swarm = [{ number: 652, title: 'The attractor can be a swarm, and the harmonograph rotary', body: 'Seven hundred particles ridden live through the system. Two rotary pendulums turn opposite ways.' }];
+        expect(refused('The attractor can now be a swarm of seven hundred particles, and the harmonograph can use two rotary pendulums.', swarm)).toEqual([]);
+      });
+
+      it('2026-10-26 beat 0: the count of included changes is stated for every beat, whatever its refs, and no other count is', () => {
+        const say = 'Two changes this week. A gate for public digests, and NVIDIA in RISE Live.';
+        // The opening beat cites none; every other beat cites one change, each change once.
+        const opening = (first, count) => numberProblems(
+          { title: 'This week in RISE', beats: [{ say: first }, ...Array.from({ length: count }, () => ({ say: 'A change.' }))] },
+          { pulls: Array.from({ length: count }, (_, i) => ({ number: 730 + i, title: 'A change', body: '' })), period: ofPeriod, sources: Object.fromEntries(Array.from({ length: count }, (_, i) => [i + 1, [730 + i]])) }
+        ).map(line => /says "([^"]+)"/u.exec(line)[1]);
+        expect(opening(say, 2)).toEqual([]);
+        expect(opening(say, 3)).toEqual(['Two']);
+        expect(opening('2 changes this week.', 2)).toEqual([]);
+        expect(opening('Three changes this week.', 2)).toEqual(['Three']);
+        expect(opening('Two services were added.', 2)).toEqual(['Two']);
+      });
     });
   });
   describe('process talk', () => {
@@ -244,7 +477,7 @@ describe('admitComposition', () => {
 
 
   describe('composition', () => {
-    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+    const words = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta', 'iota'];
     const nine = Array.from({ length: 9 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : `Beat ${words[i]}.` }));
     /** Beat 4 speaks of #653, every other beat but the opening of #652; a picture cites what its beat speaks of. */
     const refsOf = beat => (beat === 4 ? [653] : [652]);
@@ -284,7 +517,7 @@ describe('admitComposition', () => {
     });
 
     it('exempts RISE\u2019s eye from the hold limit: it may rest across beats that cite no change', () => {
-      const ten = [...nine, { say: 'Beat nine.' }];
+      const ten = [...nine, { say: 'Beat kappa.' }];
       const resting = { 1: [652], 2: [653], 9: [653] };
       const verdict = admit({ current: current(ten), opening: OPEN, sources: resting, pictures: [{ ...kit(1), refs: [652] }, { ...kit(9), refs: [653] }] });
       expect(verdict.diagnostics).toBeUndefined();

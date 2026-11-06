@@ -1,0 +1,70 @@
+{
+  "id": "SVC-012",
+  "title": "The Changes number rule checks numbers against the pull requests they cite, in any spelling",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A beat's numbers must be stated by the pull requests in its own refs (a beat that cites none states none); a picture's by the pull requests it cites; the title and drawn figures by an included one.",
+    "Numbers compare by exact value only: 22k, 22,000 and 22 thousand are one number; 1.50 is 1.5; 09 is 9; a unit never converts (1.5 s and 1,500 ms stay two numbers). Each loosening has a test of the refusal it still makes.",
+    "Numbers written in words (one to ninety-nine, hundred, thousand and million compounds, one and a half) are held to the rule; the one idiom not read, \"one of\", is stated and tested.",
+    "A day, month or year of the period passes only inside a date expression, never as a count: 30 percent in a week ending 30 October is refused, 30 October passes. Versions (v2, 2.1.287) are whole tokens.",
+    "The seven published digests are checked under the new rule with their own included pull requests and any refusal is reported to the owner, not hidden; docs/plans/RISE-CHANGES.md states the rule with its motivating cases."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "scripts/changes/admit.test.js",
+      "note": "Branch changes/number-rule, local (Windows, not pushed). Red first on origin/main's admit.js: 10 failed of 68 (scope, 22k, trailing and leading zeros, units, comma groups, words, one of, dates, versions). Green: 73 passed. Red again on purpose, one rule undone at a time and restored: scope 2 failed, 22k 2, trailing zeros 1, words unread 5, one of 1, period date anywhere 1, versions unread 1. npx vitest run scripts/changes/ src/core/changes/: 14 files, 250 passed. node scripts/ci-hygiene.mjs clean.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/changes/fixtures/published-digests.json",
+      "note": "The seven published digests (git show origin/changes-data:<id>.json): titles, periods, beats with refs, and included pull requests (number, title, body cut at 4,000 characters as read on 2026-11-06, so a body edited after its run cannot be ruled out) are snapshotted in this fixture, and scripts/changes/admit.test.js loops numberProblems over them offline expecting no refusal. Under 074c3239 alone, 2026-10-26 beat 0 was refused for \"Two\" (\"Two changes this week.\", refs none). Study probes: 22,000 for 22k, 9:00 for 09:00 and 1.5 for 1.50 now pass; twelve, v2 in a period ending on the 2nd, 26 readings in one starting on the 26th, six services and 30 percent in a week ending 30 October are now refused.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/admit.test.js",
+      "note": "Branch changes/number-rule, local, not pushed, after 074c3239. The coordinating agent's decision of 2026-11-06 for 2026-10-26 beat 0, reported to the owner: the count of included changes is stated for every beat whatever its refs, and nothing else is added. Red first: 1 failed of 73 (\"Two changes this week.\" refused with two included changes). Green: 73 passed. Red again with the count removed: 1 failed, restored. Two fixtures that the count now states (\"Two\" with two included, \"one\" with one) were changed to keep testing what they meant to. npx vitest run scripts/changes/ src/core/changes/: 14 files, 250 passed. All seven published digests admit (the fixture test above).",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/admit.test.js",
+      "note": "Review council fixes on changes/number-rule, local, not pushed, after ee5a969c. Red first: 10 failed of 82 (count of cited changes only, title held to cited pull requests, refusal naming refs and the pull request that states the number, capitalised identifiers whole, a day after a month name only where the date ends, ordinals and Oct., constructor, pronoun one). Gap tests that passed on arrival (the forward range refusal, the 22000 kit figure for #765 on admitComposition, the published fixture) were shown red by undoing the code they guard. Green: 82 passed. Red again on purpose, 14 undos one at a time, each failing 1 to 4 tests, restored. admit, run-digest and illustrate tests: 3 files, 127 passed; npx vitest run scripts/changes/ src/core/changes/: 14 files, 259 passed; ci-hygiene clean.",
+      "date": "2026-11-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-06T20:00:00.000Z",
+      "summary": "Opened and claimed for PR P1-B of the RISE Changes v2 Phase 1 plan (owner-approved): the number rule refused #765's 22k as 22000 on 2026-11-02 and admitted spelled-out and period-date numbers no pull request states."
+    },
+    {
+      "date": "2026-11-06T21:05:45.915Z",
+      "summary": "Number rule built on the branch: scoped to cited pull requests, exact values in digits or words, period dates only as dates; one published beat refused, left to the owner"
+    },
+    {
+      "date": "2026-11-06T21:08:36.658Z",
+      "summary": "Owner decision: the count of included changes is stated for every beat; all seven published digests admit"
+    },
+    {
+      "date": "2026-11-06T21:08:46.522Z",
+      "summary": "Restored the earlier evidence entries beside the count decision's"
+    },
+    {
+      "date": "2026-11-06T21:23:42.644Z",
+      "summary": "Review council fixes recorded; correction: the count exemption (revision 3 says owner decision) was the coordinating agent's decision on 2026-11-06, reported to the owner"
+    }
+  ],
+  "updatedAt": "2026-11-06T21:23:42.644Z",
+  "revision": 5,
+  "summary": "The number rule reads each beat against the pull requests it cites, compares numbers by exact value in digits or words, and admits a date of the period only as a date.",
+  "blocker": null
+}

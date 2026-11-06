@@ -2,7 +2,7 @@
  * Admit: a composer's answer held to everything a card's Current is held to
  * at the connector's door (worker/mcp-server.mjs: the size bound, the Current
  * validator, scene code and figure admission), plus the digest's own rules:
- * the sources, and no number that no included pull request states. Pure: the
+ * the sources, and no number that the pull requests a beat or picture cites do not state. Pure: the
  * verdict depends on the text and the included pull requests alone.
  */
 import { RISE_CURRENT_SCHEMA_V2, validateRiseCurrent } from '../../src/core/rise-current.js';
@@ -46,17 +46,184 @@ function sceneRefusals(current) {
   return lines.slice(0, MAX_SCENE_LINES);
 }
 
-const NUMBER = /\d+(?:[.,]\d+)*/g;
-const numbersIn = text => (String(text).match(NUMBER) ?? []).map(token => token.replace(/,/g, ''));
+/**
+ * The number rule's tokens, in order: an ISO date (its three parts), a literal read whole (a version, `v2` or three or
+ * more dotted parts, or a capitalised identifier such as `LIVE-035`), a number in digits (a comma only before groups
+ * of three digits, an optional point, an attached `k` for thousands or an ordinal's st, nd, rd or th), or a word.
+ */
+const TOKEN = /(?<![\d.])(\d{4})-(\d{2})-(\d{2})(?!\d)|(?<![A-Za-z\d])v\d+(?:\.\d+)*|\d+(?:\.\d+){2,}|(?<![A-Za-z\d])[A-Z]{2,}-\d+(?!\d)|(?:\d{1,3}(?:,\d{3})+(?!\d)|\d+)(?:\.\d+)?(?:[kK](?![A-Za-z])|(?:st|nd|rd|th)(?![A-Za-z]))?|[A-Za-z]+/g;
+const LITERAL = /^v\d|^\d+(?:\.\d+){2,}$|^[A-Z]{2,}-\d+$/u;
+const ORDINAL = /(?:st|nd|rd|th)$/u;
+const UNITS = Object.freeze({ one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 });
+const TENS = Object.freeze({ twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 });
+/** A scale word multiplies the number before it by this power of ten. */
+const SCALES = Object.freeze({ hundred: 2, thousand: 3, million: 6 });
+/** A word's value in a table, read from the table's own keys only ("constructor" is no number). */
+const valueIn = (table, name) => (name !== null && Object.hasOwn(table, name) ? table[name] : undefined);
+const isNumberWord = name => [UNITS, TENS, SCALES].some(table => valueIn(table, name) !== undefined);
+/** Words after which "one" is a pronoun, not a count: "no one", "this one", "the one". */
+const PRONOUN_BEFORE = new Set(['no', 'this', 'that', 'each', 'any', 'every', 'the', 'which']);
+/** Month names and their short forms; "May" only capitalised, since "may" is also a verb. */
+const MONTHS = new Set(['january', 'february', 'march', 'april', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'sept', 'oct', 'nov', 'dec']);
+const isMonth = token => token !== undefined && (MONTHS.has(token.text.toLowerCase()) || token.text === 'May');
+const SPACE = /^\s+$/u;
+const SPACE_OR_HYPHEN = /^(?:\s+|-)$/u;
+const RANGE = /^\s*[-–]\s*$/u;
 
-/** The numbers the included pull requests and the dates of the period state. */
-function statedNumbers(pulls, period) {
-  const stated = new Set(pulls.flatMap(pull => numbersIn(`${pull.number} ${pull.title} ${pull.body ?? ''}`)));
+/** A decimal in digits as one string: no separators, no leading or trailing zero, times ten to `power`. Exact. */
+function canonical(digits, power = 0) {
+  const [whole, fraction = ''] = digits.replace(/,/g, '').split('.');
+  const point = whole.length + power;
+  const all = (whole + fraction).padEnd(point, '0');
+  const integer = all.slice(0, point).replace(/^0+/u, '') || '0';
+  const rest = all.slice(point).replace(/0+$/u, '');
+  return rest ? `${integer}.${rest}` : integer;
+}
+
+const wordOf = token => (token !== undefined && /^[A-Za-z]+$/u.test(token.text) ? token.text.toLowerCase() : null);
+
+/**
+ * A number written in words from token `i`: `{ value, end }` (the index after its last word), or null. Compounds are
+ * read only where they are exact: "twenty-four", "seven hundred and fifty", "two thousand", "a hundred".
+ * "one" is not read where it is not a count: "one of" (a member of a group), after a word of PRONOUN_BEFORE, or
+ * joined by a hyphen to a word that is not a number ("one-time", "all-in-one").
+ */
+function wordNumber(tokens, i, text) {
+  const glued = (j, glue) => j > 0 && j < tokens.length && glue.test(text.slice(tokens[j - 1].end, tokens[j].start));
+  if (wordOf(tokens[i]) === 'one') {
+    if (wordOf(tokens[i + 1]) === 'of' && glued(i + 1, SPACE)) return null;
+    if (PRONOUN_BEFORE.has(wordOf(tokens[i - 1])) && glued(i, SPACE)) return null;
+    if (glued(i + 1, /^-$/u) && wordOf(tokens[i + 1]) !== null && !isNumberWord(wordOf(tokens[i + 1]))) return null;
+    if (glued(i, /^-$/u) && wordOf(tokens[i - 1]) !== null) return null;
+  }
+  let total = 0;
+  let group = 0;
+  let last = null;
+  let j = i;
+  if (wordOf(tokens[i]) === 'a' && valueIn(SCALES, wordOf(tokens[i + 1])) !== undefined && glued(i + 1, SPACE)) {
+    group = 1;
+    last = 'unit';
+    j = i + 1;
+  }
+  for (; j < tokens.length; j += 1) {
+    if (j > i && !glued(j, SPACE_OR_HYPHEN)) break;
+    const name = wordOf(tokens[j]);
+    const unit = valueIn(UNITS, name);
+    const tens = valueIn(TENS, name);
+    if (unit !== undefined && (last === null || last === 'scale' || last === 'and' || (last === 'tens' && unit < 10))) {
+      group += unit;
+      last = 'unit';
+    } else if (tens !== undefined && (last === null || last === 'scale' || last === 'and')) {
+      group += tens;
+      last = 'tens';
+    } else if (name === 'hundred' && (last === 'unit' || last === 'tens') && group < 100) {
+      group *= 100;
+      last = 'scale';
+    } else if ((name === 'thousand' || name === 'million') && last !== null && last !== 'and' && group > 0) {
+      total += group * 10 ** SCALES[name];
+      group = 0;
+      last = 'scale';
+    } else if (name === 'and' && last === 'scale' && (valueIn(UNITS, wordOf(tokens[j + 1])) !== undefined || valueIn(TENS, wordOf(tokens[j + 1])) !== undefined) && glued(j + 1, SPACE)) {
+      last = 'and';
+    } else {
+      break;
+    }
+  }
+  return last === null || last === 'and' ? null : { value: String(total + group), end: j };
+}
+
+/**
+ * Every number `text` says: `{ written, value, role }`, where `value` is exact ("22k", "22,000" and "22 thousand" are
+ * all "22000"; "1.50" is "1.5"; "09" is "9") and `role` is "year", "month" or "day" for a part of a date expression
+ * (an ISO date, or a number beside a month name), else null. Units are never read, so 1.5 s and 1,500 ms differ.
+ */
+function mentionsIn(text) {
+  const source = String(text);
+  const tokens = [...source.matchAll(TOKEN)].map(match => ({ text: match[0], start: match.index, end: match.index + match[0].length, iso: match[1] === undefined ? null : [match[1], match[2], match[3]] }));
+  const gap = (a, b) => source.slice(tokens[a].end, tokens[b].start);
+  const digitsOf = token => token.text.replace(ORDINAL, '');
+  const dayLike = i => tokens[i] !== undefined && /^\d{1,2}(?:st|nd|rd|th)?$/u.test(tokens[i].text) && Number(digitsOf(tokens[i])) >= 1 && Number(digitsOf(tokens[i])) <= 31;
+  // "30 October", "30th of October"; "October 30", "Oct. 30"; a date ends where punctuation or the text does.
+  const beforeMonth = i => (isMonth(tokens[i + 1]) && SPACE.test(gap(i, i + 1))) || (wordOf(tokens[i + 1]) === 'of' && isMonth(tokens[i + 2]) && SPACE.test(gap(i, i + 1)) && SPACE.test(gap(i + 1, i + 2)));
+  const afterMonth = i => i > 0 && isMonth(tokens[i - 1]) && (SPACE.test(gap(i - 1, i)) || (tokens[i - 1].text.length <= 4 && /^\.\s+$/u.test(gap(i - 1, i))));
+  const closes = i => /^\s*(?:$|[^\sA-Za-z\d])/u.test(source.slice(tokens[i].end));
+  const joined = (a, b) => (b === a + 1 && RANGE.test(gap(a, b))) || (b === a + 2 && ['to', 'and'].includes(wordOf(tokens[a + 1])) && SPACE.test(gap(a, a + 1)) && SPACE.test(gap(a + 1, a + 2)));
+  // A day before a month name; a day after one where the date ends, or with a second day where that range ends; a
+  // year after a month name or such a day; then the first day of a range whose second day stands before a month name.
+  const dated = new Map();
+  tokens.forEach((token, i) => {
+    if (dayLike(i)) {
+      if (beforeMonth(i) || (afterMonth(i) && closes(i))) dated.set(i, 'day');
+      else if (afterMonth(i)) {
+        const second = [i + 1, i + 2].find(next => dayLike(next) && joined(i, next) && closes(next));
+        if (second !== undefined) dated.set(i, 'day').set(second, 'day');
+      }
+    } else if (/^\d{4}$/u.test(token.text) && i > 0 && (isMonth(tokens[i - 1]) || dated.get(i - 1) === 'day') && /^,?\s+$/u.test(gap(i - 1, i))) {
+      dated.set(i, 'year');
+    }
+  });
+  tokens.forEach((token, i) => {
+    if (!dayLike(i) || dated.has(i)) return;
+    if ([i + 1, i + 2].some(next => dated.get(next) === 'day' && beforeMonth(next) && joined(i, next))) dated.set(i, 'day');
+  });
+  const found = [];
+  const add = (from, to, value, role = null) => found.push({ written: source.slice(tokens[from].start, tokens[to].end), value, role, end: tokens[to].end });
+  for (let i = 0; i < tokens.length;) {
+    const token = tokens[i];
+    if (token.iso) {
+      found.push(...['year', 'month', 'day'].map((role, part) => ({ written: token.text, value: canonical(token.iso[part]), role })));
+      i += 1;
+    } else if (LITERAL.test(token.text)) {
+      add(i, i, token.text);
+      i += 1;
+    } else if (/^\d/u.test(token.text)) {
+      const k = /[kK]$/u.test(token.text);
+      const ordinal = ORDINAL.test(token.text);
+      let value = canonical(k ? token.text.slice(0, -1) : digitsOf(token), k ? 3 : 0);
+      let end = i;
+      while (!k && !ordinal && valueIn(SCALES, wordOf(tokens[end + 1])) !== undefined && SPACE.test(gap(end, end + 1))) {
+        end += 1;
+        value = canonical(value, SCALES[wordOf(tokens[end])]);
+      }
+      if (!ordinal) [value, end] = half(value, end);
+      add(i, end, value, end === i ? (dated.get(i) ?? null) : null);
+      i = end + 1;
+    } else {
+      const words = wordNumber(tokens, i, source);
+      if (words === null) {
+        i += 1;
+        continue;
+      }
+      const [value, end] = half(words.value, words.end - 1);
+      add(i, end, value);
+      i = end + 1;
+    }
+  }
+  return found;
+
+  /** "one and a half", "2 and a half": a whole number and a half, read as its decimal. */
+  function half(value, end) {
+    const next = [1, 2, 3].map(step => wordOf(tokens[end + step]));
+    const joined = [1, 2, 3].every(step => end + step < tokens.length && SPACE.test(gap(end + step - 1, end + step)));
+    return /^\d+$/u.test(value) && joined && next.join(' ') === 'and a half' ? [`${value}.5`, end + 3] : [value, end];
+  }
+}
+
+/** The numbers the pull requests state, in their number, title and body, read as `mentionsIn` reads them. */
+function statedNumbers(pulls) {
+  return new Set(pulls.flatMap(pull => mentionsIn(`${pull.number} ${pull.title} ${pull.body ?? ''}`).map(mention => mention.value)));
+}
+
+/** The year, month and day of the period's two dates: each passes only in that role inside a date expression. */
+function periodParts(period) {
+  const parts = { year: new Set(), month: new Set(), day: new Set() };
   for (const at of [period.from, period.to]) {
     const date = new Date(at);
-    for (const part of [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()]) stated.add(String(part));
+    parts.year.add(String(date.getUTCFullYear()));
+    parts.month.add(String(date.getUTCMonth() + 1));
+    parts.day.add(String(date.getUTCDate()));
   }
-  return stated;
+  return parts;
 }
 
 /** A figure shows its text nodes; its markup, comments and style sheets are not read. */
@@ -69,25 +236,68 @@ const COLOUR = /^.(?:#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^)]*\)).$/iu;
 const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? [])
   .filter(literal => !COLOUR.test(literal)).join(' ');
 
-function unstated(texts, stated, what, whose = 'included pull request') {
-  const found = new Set();
+/** What follows a count of changes; the host's count of cited changes is stated only there. */
+const COUNTED = /^\s+(?:(?:more|new|separate|distinct|included)\s+)?(?:changes?|pull\s+requests?|PRs?|updates?)\b/iu;
+
+/**
+ * The numbers `texts` say that `pulls` do not state, a date of the period in its role excepted, and `count` only where
+ * it counts changes ("2 changes", "two pull requests"): one `{ written, value }` for each spelling.
+ */
+function unstatedIn(texts, pulls, period, count = null) {
+  const stated = statedNumbers(pulls);
+  const parts = periodParts(period);
+  const found = new Map();
   for (const text of texts) {
     if (typeof text !== 'string') continue;
-    for (const number of numbersIn(text)) if (!stated.has(number)) found.add(number);
+    for (const { written, value, role, end } of mentionsIn(text)) {
+      const counts = value === count && COUNTED.test(text.slice(end));
+      if (!stated.has(value) && !counts && !(role !== null && parts[role].has(value))) found.set(written, { written, value });
+    }
   }
-  return [...found].slice(0, MAX_NUMBER_LINES).map(number =>
-    `${what} says "${number}", which no ${whose} states; use only numbers written in the pull requests, or say it without a number`);
+  return [...found.values()];
+}
+
+const numberLine = (what, whose) => ({ written }) => `${what} says "${written}", which no ${whose} states; use only numbers written in the pull requests, or say it without a number`;
+
+function unstated(texts, pulls, period, what, whose = 'included pull request') {
+  return unstatedIn(texts, pulls, period).slice(0, MAX_NUMBER_LINES).map(numberLine(what, whose));
 }
 
 /** The same rule for one code scene: the numbers in its string literals. */
 export function codeNumberProblems(code, { pulls, period }) {
-  return unstated([codeText(code)], statedNumbers(pulls, period), 'The scene', 'pull request the picture cites');
+  return unstated([codeText(code)], pulls, period, 'The scene', 'pull request the picture cites');
 }
 
-/** Numbers the Current says or shows, its figures included, that no included pull request and no date of the period states. */
-export function numberProblems(current, { pulls, period }) {
+/** Numbers the Current's figures and code scenes show that no included pull request states. */
+export function sceneNumberProblems(current, { pulls, period }) {
   const figures = (current.scenes ?? []).map(scene => (typeof scene?.svg === 'string' ? figureText(scene.svg) : typeof scene?.code === 'string' ? codeText(scene.code) : undefined));
-  return unstated([current.title, ...current.beats.flatMap(beat => [beat?.say, beat?.show]), ...figures], statedNumbers(pulls, period), 'The Current');
+  return unstated(figures, pulls, period, 'The Current');
+}
+
+/**
+ * Numbers the Current says or shows that its sources do not state: each beat's against the pull requests in its own
+ * refs (`sources`, beat index to pull request numbers; a beat with none may state only a date of the period), the
+ * title against the pull requests some beat cites (an included one no beat cites leaves the reading), and the figures
+ * against every included pull request. The count of cited changes is computed by the host, not written by the
+ * composer, so every beat may state it as a count of changes; no other count is added, and the title is not given it.
+ */
+export function numberProblems(current, { pulls, period, sources = {} }) {
+  const cited = new Set(Object.values(sources).filter(Array.isArray).flat());
+  const spoken = pulls.filter(pull => cited.has(pull.number));
+  const count = String(spoken.length);
+  const beats = current.beats.flatMap((beat, index) => {
+    const refs = Array.isArray(sources[index]) ? sources[index] : [];
+    return unstatedIn([beat?.say, beat?.show], pulls.filter(pull => refs.includes(pull.number)), period, count).map(({ written, value }) => {
+      const other = pulls.find(pull => !refs.includes(pull.number) && statedNumbers([pull]).has(value));
+      const fix = other ? `#${other.number} states it: cite #${other.number} on this beat if it speaks of that change` : 'use only numbers written in the pull requests a beat cites';
+      return `beat ${index} (refs [${refs.join(', ')}]) says "${written}", which none of them states; ${fix}, or say it without a number`;
+    });
+  });
+  return [
+    ...unstatedIn([current.title], spoken, period).map(numberLine('The title', 'pull request a beat cites')),
+    ...beats,
+    ...sceneNumberProblems(current, { pulls, period })
+  ].slice(0, MAX_NUMBER_LINES);
 }
 
 /**
@@ -95,7 +305,7 @@ export function numberProblems(current, { pulls, period }) {
  * so a figure's numbers come from the changes it shows, not from anywhere in the week.
  */
 export function figureNumberProblems(svg, { pulls, period }) {
-  return unstated([figureText(svg)], statedNumbers(pulls, period), 'The figure', 'pull request the picture cites');
+  return unstated([figureText(svg)], pulls, period, 'The figure', 'pull request the picture cites');
 }
 
 /** Beats an engine, or a picture over a beat that cites none of its changes, may be held for before a picture starts. */
@@ -379,9 +589,8 @@ export function admitComposition(text, { pulls, model, period, kitOnly = false }
   // A picture's numbers come from the pull requests it cites.
   const pictureNumbers = (picture, index) => {
     if (picture === null || typeof picture !== 'object' || !isRefList(picture.refs)) return [];
-    const stated = statedNumbers(pulls.filter(pull => picture.refs.includes(pull.number)), period);
     const texts = picture.kit !== undefined ? kitTexts(picture.kit) : [picture.brief];
-    return unstated(texts, stated, `"pictures"[${index}]`, 'pull request the picture cites');
+    return unstated(texts, pulls.filter(pull => picture.refs.includes(pull.number)), period, `"pictures"[${index}]`, 'pull request the picture cites');
   };
   const found = {
     scene: sceneRefusals(current),
@@ -389,7 +598,7 @@ export function admitComposition(text, { pulls, model, period, kitOnly = false }
     density: Array.isArray(value.pictures) ? densityProblems(current, value.pictures, { beatRefs: refsGiven, majors: pulls.filter(pull => pull.route?.significance === 'major').map(pull => pull.number) }).map(clean) : [],
     refs: refsProblems(sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
     number: [
-      ...numberProblems(current, { pulls, period }),
+      ...numberProblems(current, { pulls, period, sources }),
       ...pictures.flatMap(pictureNumbers)
     ],
     'process-talk': processTalkProblems(current.beats.map(beat => [beat?.say, beat?.show].filter(Boolean).join(' ')), { subject }).map(problem => clean(problem.message))

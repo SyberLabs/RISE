@@ -15,7 +15,7 @@ import { admitSvg } from '../../src/core/svg-admission.js';
 import { renderFigure } from '../../src/core/figures/figure-kit.js';
 import { RISE_CURRENT_THEME_IDS, validateRiseCurrent } from '../../src/core/rise-current.js';
 import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
-import { codeNumberProblems, figureNumberProblems, numberProblems } from './admit.js';
+import { codeNumberProblems, figureNumberProblems, sceneNumberProblems } from './admit.js';
 
 /** What the digest adds to Live's illustrator instructions: where its pictures are seen. */
 const DIGEST_PICTURE_NOTE = [
@@ -204,7 +204,8 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
     log(`  ${note}`);
   }
   validateRiseCurrent(drawn);
-  const problems = numberProblems(drawn, { pulls, period });
+  // The beats' words were held to their own refs at admission and are not changed here; the drawn scenes are held again.
+  const problems = sceneNumberProblems(drawn, { pulls, period });
   if (problems.length) throw new Error(`The illustrated Current breaks the number rule: ${problems[0]}`);
   return { current: drawn, notes };
 }

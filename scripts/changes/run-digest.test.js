@@ -119,6 +119,8 @@ describe('runDigest on the week of #652–#671', () => {
     const silent = JSON.parse(composition);
     const beat = silent.current.beats.findIndex(item => item.refs?.includes(667));
     silent.current.beats[beat].refs = silent.current.beats[beat].refs.filter(number => number !== 667);
+    // A beat's numbers come from the pull requests it cites: one that cites none says none.
+    silent.current.beats[beat].say = 'That visual now also reaches the screen at once, instead of waiting for the next phrase.';
     const { ask, calls } = scriptedAsk([route, JSON.stringify(silent), ...rest]);
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
     const digest = JSON.parse(result.files['2026-10-14.json']);
