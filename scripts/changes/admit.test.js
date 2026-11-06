@@ -442,6 +442,7 @@ describe('admitComposition', () => {
         expect(opening(say, 3)).toEqual(['Two']);
         expect(opening('2 changes this week.', 2)).toEqual([]);
         expect(opening('Three changes this week.', 2)).toEqual(['Three']);
+        expect(opening('Two services were added.', 2)).toEqual(['Two']);
       });
     });
   });

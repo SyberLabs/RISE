@@ -241,13 +241,14 @@ const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(
  * `{ written, value }` for each spelling.
  */
 function unstatedIn(texts, pulls, period, also = []) {
-  const stated = new Set([...statedNumbers(pulls), ...also]);
+  const stated = new Set(statedNumbers(pulls));
   const parts = periodParts(period);
   const found = new Map();
   for (const text of texts) {
     if (typeof text !== 'string') continue;
     for (const { written, value, role } of mentionsIn(text)) {
-      if (!stated.has(value) && !(role !== null && parts[role].has(value))) found.set(written, { written, value });
+      const counted = also.includes(value) && new RegExp(`(?<![\\w-])${written.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(?:(?:more|new|separate|distinct|included)\\s+)?(?:changes?|pull requests?|PRs?|updates?)\\b`, 'iu').test(text);
+      if (!stated.has(value) && !counted && !(role !== null && parts[role].has(value))) found.set(written, { written, value });
     }
   }
   return [...found.values()];
