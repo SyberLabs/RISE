@@ -19,15 +19,32 @@
     "scripts/changes/replay.mjs runs collect, facts, route and claims over the seven published periods with a local cache and reports calls by role, bytes, cache hits and the caveat check of the 12; a second replay with the same cache makes zero model calls; .github/workflows/changes-replay.yml runs it twice by hand only and fails when the second pass makes a call.",
     "Exit test (Phase 1, run by the coordinator): on the replay set every included pull request has claims with exact spans, a second replay makes zero model calls, and each of the 12 hidden-caveat pull requests has a pending or flagged claim quoting its section."
   ],
-  "evidence": [],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "scripts/changes/claims.test.js",
+      "date": "2026-11-06",
+      "note": "Branch changes/claims-stage, commit ab723995, local (Windows, not pushed): npx vitest run scripts/changes/ src/core/changes/: 19 files, 358 passed, 1 skipped (the symbolic-link case Windows cannot create); node --test scripts/changes/digest.test.mjs: 5 passed; node scripts/ci-hygiene.mjs clean; npx vitest list --config vitest.fast.config.js: 162 files (FAST_TEST_FILES 162). Red first: claims-context.js, claims.js and replay.mjs missing; 2 run-digest --claims tests failed before run-digest and digest.mjs had the flag; 2 digest.test.mjs tests failed on the new claims option until updated. Red again on purpose, one mutation each, restored after: a field added to the claims context (2 failed); 'not in this pr' and 'human gate' dropped from the caveat phrases (2, #684 first); the number rule off (2); cached claims not compared to the filed ones (1); claims on by default (every run-digest test that counts calls failed); claims for every candidate (1); claims cache not written by replay (1); hidden caveats claimed only when included (1, after a test for it was added: the first mutation passed because the recorded week includes all four); the public-repository gate removed from replay (1); the workflow on pull_request, its second-pass check off, the model token on npm ci, contents: write (1 each)."
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/claims-context.test.js",
+      "date": "2026-11-06",
+      "note": "#655's claims request, system text included: 8,329 bytes (pinned). No model call made: a scratch script ran collectMergedPulls over the seven built-in periods through gh, then factCard and buildClaimsRequest: 88 distinct candidates, 581,242 bytes if every candidate were claimed (the run claims included ones only), 20 with a caveat section; each of the 12 hidden-caveat pull requests has one past character 4,000 (#655 'Not verified' from code point 4,907, its heading at 4,891). The replay and the Phase 1 exit test are not yet run: no dispatch made, by the coordinator later."
+    }
+  ],
   "activity": [
     {
       "date": "2026-11-06T23:30:00.000Z",
       "summary": "Opened and claimed as P1-D of the RISE Changes v2 Phase 1 plan (owner-approved 2026-11-06)."
+    },
+    {
+      "date": "2026-11-06T23:32:55.967Z",
+      "summary": "Claims stage, caveat rule, claims cache, --claims and replay built on branch changes/claims-stage, tests recorded"
     }
   ],
-  "updatedAt": "2026-11-06T23:30:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-11-06T23:32:55.967Z",
+  "revision": 2,
   "summary": "One model call per included pull request lists its claims, each admitted by code against an exact source span, with a caveat rule for what the author says is not verified, a claims cache by merge SHA, a --claims flag and a replay command and workflow for the Phase 1 exit test.",
   "blocker": null
 }
