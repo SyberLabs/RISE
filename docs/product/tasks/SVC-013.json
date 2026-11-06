@@ -17,15 +17,32 @@
     "A re-run over the same period with the same cache makes zero router calls, and a superseding run routes every pull request the first digest routed exactly as before (the #685 and #693 case of 2026-10-16-2).",
     "Both Changes workflows check changes-data out read-only without credentials before the run, pass it as --cache, and commit only the new route files beside the digest on non-dry runs; the published digest format is unchanged."
   ],
-  "evidence": [],
-  "activity": [
+  "evidence": [
     {
-      "date": "2026-11-06T22:00:00.000Z",
-      "summary": "Opened and claimed as P1-C of the RISE Changes v2 Phase 1 plan (owner-approved 2026-11-06)."
+      "kind": "test",
+      "ref": "scripts/changes/route.test.js",
+      "date": "2026-11-06",
+      "note": "Branch changes/route-cache, commit 96f6f765, local (Windows, not pushed): npx vitest run scripts/changes/ src/core/changes/: 16 files, 275 passed, 1 skipped (the symbolic-link case, which Windows cannot create without a privilege; it runs on Linux). Red first: route-context.js missing; 9 routeContract and routeCandidates tests failed before route.js had them; 20 run-digest tests failed until run-digest passed fact cards; cacheReader missing. Red again on purpose, one mutation each, restored after: a field added to the context (2 failed), contract hash not checked (1), no retry (2), a fallback cached (2), contract hash without FACTS_VERSION (1), run without reading the cache (2: re-run and supersede), no size bound on a cache file (1), any file name read (1), workflows as on main (4), cache checkout with persist-credentials true (3)."
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/route-context.test.js",
+      "date": "2026-11-06",
+      "note": "Router input on the recorded week (#652 to #671, 15 pull requests offered), system text included: 33,279 bytes before (1,500 body characters and 30 paths each), 19,568 after; the test pins 19,568 and the six fields. Workflow pins in scripts/changes/public-workflow.test.js for both changes-digest.yml and changes-public.yml. Not yet run in a workflow: no dispatch made."
     }
   ],
-  "updatedAt": "2026-11-06T22:00:00.000Z",
-  "revision": 1,
+  "activity": [
+    {
+      "date": "2026-11-06T21:20:00.000Z",
+      "summary": "Opened and claimed as P1-C of the RISE Changes v2 Phase 1 plan (owner-approved 2026-11-06)."
+    },
+    {
+      "date": "2026-11-06T21:47:21.351Z",
+      "summary": "Context contract, route cache and one retry built on branch changes/route-cache, tests recorded"
+    }
+  ],
+  "updatedAt": "2026-11-06T21:47:21.351Z",
+  "revision": 2,
   "summary": "The router reads fact-card summaries through a pinned context contract, each route is cached on changes-data by merge SHA under a contract hash, and an unreadable answer is asked for once more, so re-runs and supersedes route as the first run did.",
   "blocker": null
 }
