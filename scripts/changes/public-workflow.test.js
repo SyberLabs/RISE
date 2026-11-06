@@ -66,6 +66,8 @@ describe.each(['changes-digest.yml', 'changes-public.yml'])('the run’s artifac
     const upload = step("Keep the run's evidence as an artifact");
     expect(workflow.indexOf('Keep the run')).toBeGreaterThan(workflow.indexOf('Route, compose and admit the digest'));
     expect(upload).toMatch(/if: always\(\)/);
+    // A failed upload (an artifact name a caller's workflow already used) never skips the commit and the issue.
+    expect(upload).toMatch(/continue-on-error: true/);
     expect(upload).toMatch(/uses: actions\/upload-artifact@[0-9a-f]{40} # v\d+\.\d+\.\d+\n/);
     expect(upload.match(/^ {12}\S.*$/gm)).toEqual(['            ${{ runner.temp }}/changes/run.json', '            ${{ runner.temp }}/changes/rejected.json']);
     expect(upload).toMatch(/retention-days: 90/);

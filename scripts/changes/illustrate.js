@@ -42,17 +42,16 @@ const diagnosticLine = ({ rule, line, message }) => `${rule}${line === null || l
 
 /**
  * A text-stream adapter whose one request is one `ask`, its admission widened by the number rule for figures.
- * `heard` holds the latest request's raw answer and the diagnostics this adapter gave it.
+ * `heard.text` is the latest request's raw answer.
  */
 function illustratorAdapter({ ask, model, pulls, period, tally }) {
   const system = `${ILLUSTRATOR_INSTRUCTIONS}\n\n${DIGEST_PICTURE_NOTE}`;
-  const heard = { text: '', found: [] };
+  const heard = { text: '' };
   const adapter = createTextStreamAdapter({
     id: 'changes-illustrator',
     origin: () => ({ name: model, provider: COMPOSER_PROVIDER }),
     async connect(request, sink) {
       heard.text = '';
-      heard.found = [];
       ask({ system, prompt: promptFor(request), model }).then(
         text => { heard.text = String(text); sink.delta(String(text)); sink.done(); },
         error => sink.error({ code: 'PROVIDER_FAILED', message: String(error?.message ?? error), recoverable: false })
@@ -68,7 +67,6 @@ function illustratorAdapter({ ask, model, pulls, period, tally }) {
       ...(scene.svg !== undefined ? svgLayoutProblems(scene.svg).problems.map(({ rule, line, message }) => ({ line, column: null, rule, message })) : [])
     ];
     for (const diagnostic of found) tally.fired(diagnostic.rule);
-    heard.found = found;
     return found;
   };
   return { ...adapter, diagnoseScene, heard };
@@ -155,7 +153,7 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
         }
         if (type === 'illustration.refused') {
           log(`  picture for beat ${picture.beat}: attempt ${body.attempt} refused (${body.rule}${body.line === null ? '' : `, line ${body.line}`})`);
-          keep(adapter.heard.found.length ? adapter.heard.found.map(diagnosticLine) : [diagnosticLine(body)]);
+          keep(body.diagnostics.map(diagnosticLine));
         }
       }
     });
@@ -187,7 +185,10 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       log(`  picture for beat ${picture.beat}: a ${result.medium} admitted on attempt ${result.attempts}`);
     } else {
       const why = fault !== null ? `its labels still failed the rendered check after a repair (${fault})`
-        : result.status === 'failed' ? `${result.reason} after ${result.attempts} attempt${result.attempts === 1 ? '' : 's'}` : `the illustrator answered with a ${result.status}`;
+        : result.status === 'failed' ? `${result.reason} after ${result.attempts} attempt${result.attempts === 1 ? '' : 's'}`
+          : `the illustrator answered with a ${result.status === 'admitted' ? result.medium : result.status}`;
+      // A cue was admitted by draw but cannot be a digest picture, so this answer was refused here, not there.
+      if (fault === null && result.status !== 'failed') keep([`let go: ${why}`]);
       letGo(`The picture for beat ${picture.beat} (“${clip(picture.brief, 80)}”) was not drawn: ${why}; the beat keeps the scene before it.`);
     }
   }

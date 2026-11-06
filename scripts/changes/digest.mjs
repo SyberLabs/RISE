@@ -17,6 +17,7 @@
  * otherwise) and marks that digest superseded in the index.
  */
 import { execFile, spawn } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -105,7 +106,7 @@ async function outDirectory(out) {
   return dir;
 }
 
-export async function main(argv, { env = process.env, log = line => console.log(line) } = {}) {
+export async function main(argv, { env = process.env, log = line => console.log(line), digest = runDigest } = {}) {
   const options = parseOptions(argv);
   const dir = await outDirectory(options.out);
   if (options.dryRun) log('Dry run: the files are written to the out directory only; nothing is pushed and no issue is opened.');
@@ -123,14 +124,17 @@ export async function main(argv, { env = process.env, log = line => console.log(
   };
   let result;
   const rejected = [];
+  // Written whole and synchronously at each refusal: a job that times out or is cancelled ends node before any
+  // finally runs, and must still leave every answer refused so far.
+  const onRefused = entry => {
+    rejected.push(entry);
+    writeFileSync(join(dir, 'rejected.json'), serializeRejected(rejected), 'utf8');
+    log(`Kept refused answer ${rejected.length} in rejected.json for the run's artifact.`);
+  };
   try {
-    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck, rejected });
+    result = await digest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck, onRefused });
   } finally {
     if (renderer) await (await renderer.catch(() => null))?.close();
-    if (rejected.length) {
-      await writeFile(join(dir, 'rejected.json'), serializeRejected(rejected), 'utf8');
-      log(`Kept ${rejected.length} refused answer${rejected.length === 1 ? '' : 's'} in rejected.json for the run's artifact.`);
-    }
   }
   if (!result.written) {
     log(`Nothing to write: ${result.reason}.`);

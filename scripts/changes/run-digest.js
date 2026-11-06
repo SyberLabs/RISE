@@ -93,14 +93,14 @@ function measureDensity(current, { sources, pictureRefs, includedChanges }) {
  * `{ written: false, reason }` when there is nothing to write, else
  * `{ written: true, id, files, issue }`: the file names and their text, and
  * the notification issue's title and body. `renderCheck`, when given, renders
- * each admitted figure (illustrate.js). Each model answer RISE refuses is
- * pushed to `rejected` as `{ stage, attempt, beat?, refusal, answer }` as it is
- * refused, so a run that throws still leaves them for rejected.json.
+ * each admitted figure (illustrate.js). `onRefused` is given each model
+ * answer RISE refuses, `{ stage, attempt, beat?, refusal, answer }`, the moment
+ * it is refused, so a run that throws or is stopped has already handed it over.
  */
 const kitBrief = picture => picture !== null && typeof picture === 'object' && (Object.hasOwn(picture, 'brief') || Object.hasOwn(picture, 'medium') || Object.hasOwn(picture, 'code'));
 
-export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false, rejected = [] }) {
-  const refused = entry => rejected.push({ ...entry, answer: String(entry.answer ?? '') });
+export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false, onRefused = () => {} }) {
+  const refused = entry => onRefused({ ...entry, answer: String(entry.answer ?? '') });
   if (figures !== undefined && figures !== 'kit') throw new Error('--figures kit is the only public-digest mode');
   const kitOnly = figures === 'kit';
   // A customer's product names the digest, and its brand draws the figures; a brand the company has not confirmed runs only dry.

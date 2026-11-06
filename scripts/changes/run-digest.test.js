@@ -1,9 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { renderFigure } from '../../src/core/figures/figure-kit.js';
 import { createAsk } from '../../src/core/changes/claude-cli.js';
 import { REJECTED_LIMITS, runDigest, serializeRejected } from './run-digest.js';
+import { main } from './digest.mjs';
 
 // A Windows checkout may give the fixtures CRLF; the files the run writes are LF.
 const fixture = name => readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures', name), 'utf8').replace(/\r\n/g, '\n');
@@ -318,7 +320,7 @@ describe('runDigest on the week of #652–#671', () => {
     const refused = JSON.stringify({ current: { schema: 'rise.current.v2' }, sources: {} });
     const { ask, calls } = scriptedAsk([fixture('route-answer.txt'), refused, refused, refused]);
     const rejected = [];
-    await expect(runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {}, rejected }))
+    await expect(runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {}, onRefused: entry => rejected.push(entry) }))
       .rejects.toThrow(/refused/);
     expect(calls).toHaveLength(4);
     expect(rejected.map(entry => [entry.stage, entry.attempt, entry.answer])).toEqual([1, 2, 3].map(attempt => ['composition', attempt, refused]));
@@ -332,7 +334,7 @@ describe('the answers a run refused (rejected.json)', () => {
     const rejected = [];
     const lines = [];
     const { ask } = scriptedAsk(answers);
-    return runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line), rejected, ...rest })
+    return runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line), onRefused: entry => rejected.push(entry), ...rest })
       .then(result => ({ result, rejected, lines }));
   };
   const talkyComposition = say => {
@@ -388,6 +390,29 @@ describe('the answers a run refused (rejected.json)', () => {
     expect(rejected).toEqual([{ stage: 'illustrator', beat: 8, attempt: 1, refusal: ['overlap: two labels touch'], answer: drawn }]);
   });
 
+  it('keeps both figures the rendered check refused when the repaired one is still at fault', async () => {
+    const [route, composition, drawn, next] = week();
+    const renderCheck = async svg => ({ problems: drawn.includes(svg) ? [{ rule: 'overlap', message: 'two labels touch' }] : [], ms: 1 });
+    const { rejected } = await run([route, composition, drawn, drawn, next], { renderCheck });
+    expect(rejected).toEqual([1, 2].map(attempt => ({ stage: 'illustrator', beat: 8, attempt, refusal: ['overlap: two labels touch'], answer: drawn })));
+  });
+
+  it('keeps an illustrator answer that drew nothing with its full refusal, not only its rule', async () => {
+    const [route, composition, , next] = week();
+    const nothing = 'I would rather not draw this.';
+    const { rejected } = await run([route, composition, nothing, nothing, nothing, next]);
+    expect(rejected).toEqual([1, 2, 3].map(attempt => ({ stage: 'illustrator', beat: 8, attempt, refusal: ['nothing-drawn: the answer drew no picture'], answer: nothing })));
+  });
+
+  it('keeps an illustrator answer let go as a cue, with the reason it was let go', async () => {
+    const [route, composition, , next] = week();
+    const cue = '@cue opening bright\n';
+    const { result, rejected } = await run([route, composition, cue, next]);
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    expect(digest.notes).toEqual([expect.stringContaining('the illustrator answered with a cue')]);
+    expect(rejected).toEqual([{ stage: 'illustrator', beat: 8, attempt: 1, refusal: ['let go: the illustrator answered with a cue'], answer: cue }]);
+  });
+
   it('never keeps the model credential: an answer that echoes it is kept redacted', async () => {
     const TOKEN = 'sk-ant-oat01-fake-token-for-the-redaction-test';
     const [route, composition, ...rest] = week();
@@ -396,7 +421,7 @@ describe('the answers a run refused (rejected.json)', () => {
     const cli = async () => ({ code: 0, stderr: '', stdout: JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result: answers.shift() }) });
     const ask = createAsk({ run: cli, env: { CLAUDE_CODE_OAUTH_TOKEN: TOKEN }, log: () => {} });
     const rejected = [];
-    await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {}, rejected });
+    await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {}, onRefused: entry => rejected.push(entry) });
     expect(rejected).toHaveLength(1);
     expect(rejected[0].answer).toBe(talky.replace(TOKEN, '[redacted]'));
     expect(serializeRejected(rejected)).not.toContain(TOKEN);
@@ -421,5 +446,34 @@ describe('runDigest for a customer', () => {
     const { ask } = scriptedAsk([]);
     await expect(runDigest({ gh, ask, repo: 'openstatusHQ/openstatus', figures: 'kit', log: () => {} }))
       .rejects.toThrow(/not confirmed by the company yet, so only a dry run may use it/);
+  });
+});
+
+describe('digest.mjs main and rejected.json on disk', () => {
+  const entry = attempt => ({ stage: 'composition', attempt, refusal: ['a refusal'], answer: `answer ${attempt}` });
+  const outDir = () => join(mkdtempSync(join(tmpdir(), 'rise-changes-test-')), 'out');
+
+  it('writes rejected.json the moment an answer is kept, so a run stopped mid-way leaves it parseable', async () => {
+    const out = outDir();
+    const file = join(out, 'rejected.json');
+    let onDisk = null;
+    const digest = async ({ onRefused }) => {
+      onRefused(entry(1));
+      onDisk = JSON.parse(readFileSync(file, 'utf8'));
+      onRefused(entry(2));
+      throw new Error('the job was cancelled');
+    };
+    await expect(main(['--out', out], { env: {}, log: () => {}, digest })).rejects.toThrow('the job was cancelled');
+    expect(onDisk).toEqual([entry(1)]);
+    expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual([entry(1), entry(2)]);
+    expect(existsSync(join(out, 'run.json'))).toBe(false);
+  });
+
+  it('writes no rejected.json when nothing was refused', async () => {
+    const out = outDir();
+    const digest = async () => ({ written: false, reason: 'No pull request was merged into main in the period' });
+    await main(['--out', out], { env: {}, log: () => {}, digest });
+    expect(existsSync(join(out, 'rejected.json'))).toBe(false);
+    expect(JSON.parse(readFileSync(join(out, 'run.json'), 'utf8'))).toEqual({ written: false, reason: 'No pull request was merged into main in the period' });
   });
 });

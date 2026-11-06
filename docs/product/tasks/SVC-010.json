@@ -26,20 +26,30 @@
       "ref": "scripts/changes/public-workflow.test.js",
       "note": "Both workflows: the artifact step follows the digest step, if: always(), upload-artifact pinned by 40-hex SHA, paths exactly run.json and rejected.json, retention 90, no credential; the commit step copies only $ID.json and index.json. Red with rejected.json added to changes-digest.yml's cp line (1 failed), restored. Not yet seen: a real workflow run uploading the artifact.",
       "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/run-digest.test.js",
+      "note": "Review council fixes on the same branch, local (not pushed), each red first then green: (1) rejected.json rewritten synchronously at each refusal (red: ENOENT mid-run); (2) main takes its digest function, tested writing on a throw and writing nothing when nothing was refused (red: the real run was called); (3) an illustrator answer let go as a cue is kept with its reason (red: nothing kept); (4) the illustration.refused note carries its diagnostics, so a drawn-nothing answer is kept as 'nothing-drawn: the answer drew no picture' (red: bare rule); (5) a figure the rendered check refuses twice gives attempts 1 and 2 (red with the second keep removed); (6) continue-on-error on both upload steps, pinned (red: 2 failed). npx vitest run scripts/changes/ src/core/changes/ src/live/illustrator.test.js src/live/runtime.illustrator.test.js src/live/perception.test.js: 17 files, 312 passed; ci-hygiene clean. Still not seen: a real workflow run.",
+      "date": "2026-11-06"
     }
   ],
   "activity": [
     {
       "date": "2026-11-06T20:00:00.000Z",
-      "summary": "Opened, owner-approved: the Phase 0 audit could not label refusals L02 and L27 because the refused answers were not kept."
+      "summary": "Opened, approved by the owner in the coordinating session on 2026-11-06 (not linked): the Phase 0 audit could not label refusals L02 and L27 because the refused answers were not kept."
     },
     {
       "date": "2026-11-06T21:01:17.162Z",
       "summary": "Built on branch: rejected.json kept, redacted, bounded and uploaded with run.json"
+    },
+    {
+      "date": "2026-11-06T21:18:51.680Z",
+      "summary": "Review council fixes: synchronous rejected.json, main tested, cue and full refusals kept, upload cannot skip the commit; activity wording corrected"
     }
   ],
-  "updatedAt": "2026-11-06T21:01:17.162Z",
-  "revision": 2,
+  "updatedAt": "2026-11-06T21:18:51.680Z",
+  "revision": 3,
   "summary": "Each model answer RISE refuses in a Changes run is kept, redacted and bounded, in rejected.json and uploaded with run.json as the workflow run's artifact, so a later audit can label what today's could not.",
   "blocker": null
 }
