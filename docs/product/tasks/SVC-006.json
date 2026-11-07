@@ -3,8 +3,8 @@
   "title": "Changes figures readable in the light room",
   "lane": "shared",
   "milestone": "RISE Changes",
-  "status": "in_progress",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude",
   "priority": "now",
   "dependencies": [],
@@ -33,6 +33,18 @@
       "ref": "src/live/host/LiveHost.css",
       "note": "Rendered by the agent in Playwright Chromium against the Vite dev server, the 2026-11-02 digest in RISE Live at 390 x 844 and 1440 x 900: in Porcelain picture-2 hangs on a #0e1b36 plate, every label legible; in the dark room no mark and no plate, as before; a dark-ink figure placed as picture-2 stays unmarked on the cream and reads; switching from the dark room to Porcelain through Settings while picture-2 shows marks it and hangs the plate. Not a human observation.",
       "date": "2026-11-06"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/772",
+      "note": "Merged into main 2026-11-06T19:09:41Z as merge commit 2734ec88.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/42277175330",
+      "note": "Main CI run for merge commit 2734ec88: CI, voice-provider and production jobs succeeded; the production job (deploys this commit's built dist/ to production) completed 2026-11-06T19:17:31Z. Deployment only; not accepted, awaiting the owner's live check.",
+      "date": "2026-11-06"
     }
   ],
   "activity": [
@@ -43,10 +55,14 @@
     {
       "date": "2026-11-06T18:49:05.092Z",
       "summary": "Review fixes: marked only when the night reads better, layout-check colour reading, room switch re-marks; all 29 published figures measured"
+    },
+    {
+      "date": "2026-11-06T23:11:56.830Z",
+      "summary": "Merged and deployed (production job succeeded, run linked); not accepted, awaiting the owner's live check"
     }
   ],
-  "updatedAt": "2026-11-06T18:49:05.092Z",
-  "revision": 2,
+  "updatedAt": "2026-11-06T23:11:56.830Z",
+  "revision": 3,
   "summary": "A Changes figure drawn in a dark theme's fixed inks is shown in the light room on the room's night, where it reads, instead of on the cream where its labels vanished. Illustrator figures and the dark room are unchanged.",
   "blocker": null
 }

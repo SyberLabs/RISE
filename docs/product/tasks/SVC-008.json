@@ -3,8 +3,8 @@
   "title": "A router fallback is recorded as unrouted, not routed",
   "lane": "shared",
   "milestone": "RISE Changes",
-  "status": "in_progress",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude",
   "priority": "now",
   "dependencies": [],
@@ -26,6 +26,18 @@
       "ref": "scripts/changes/route.test.js",
       "note": "Review fixes on the same branch, local: every unrouted change listed ahead of the other left-out ones (70 candidates, 5 oldest unrouted, all listed), the Unrouted log line only above zero, and a genuine skip/minor/records week counted as routed. Red first (2 failed), green; red again with a value check in place of the identity check (1 failed), restored. Same targeted command: 10 files, 225 passed.",
       "date": "2026-11-06"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/771",
+      "note": "Merged into main 2026-11-06T18:52:38Z as merge commit 92e1fa0e.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/42274649004",
+      "note": "Main CI run for merge commit 92e1fa0e: CI, voice-provider and production jobs succeeded; the production job (deploys this commit's built dist/ to production) completed 2026-11-06T18:59:57Z. Deployment only; not accepted, awaiting the owner's live check.",
+      "date": "2026-11-06"
     }
   ],
   "activity": [
@@ -36,10 +48,14 @@
     {
       "date": "2026-11-06T18:36:27.161Z",
       "summary": "Review council fixes: unrouted listed first, log only above zero, genuine skip tested"
+    },
+    {
+      "date": "2026-11-06T23:11:58.123Z",
+      "summary": "Merged and deployed (production job succeeded, run linked); not accepted, awaiting the owner's live check"
     }
   ],
-  "updatedAt": "2026-11-06T18:36:27.161Z",
-  "revision": 2,
+  "updatedAt": "2026-11-06T23:11:58.123Z",
+  "revision": 3,
   "summary": "A pull request whose router answer could not be read is written as unrouted, so a format slip is no longer indistinguishable from the router's choice on the page, in the issue and in the run log.",
   "blocker": null
 }
