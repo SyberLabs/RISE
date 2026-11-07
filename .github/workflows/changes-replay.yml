@@ -1,0 +1,77 @@
+# RISE Changes replay (docs/plans/RISE-CHANGES.md, Claims): the claims stage's exit test as one job. It runs
+# scripts/changes/replay.mjs over the seven published periods twice with one fresh cache directory: the first pass
+# routes and claims (model calls on the Claude Code token), the second must not ask the model about any pull request the
+# first cached (one the first could not cache may be asked again, counted apart). It reads GitHub and writes only
+# to the runner; it commits, pushes and opens nothing. Run by hand only: never on a pull request, never required.
+name: Changes replay
+
+on:
+  workflow_dispatch:
+
+# Reading the repository and its pull requests (the same GraphQL reads as changes-digest.yml) is all it needs:
+# nothing is committed, pushed or opened.
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: changes-replay
+  cancel-in-progress: false
+
+jobs:
+  replay:
+    name: Replay the published periods twice
+    runs-on: ubuntu-latest
+    # About 100 claims calls, four at a time, then a pass with none.
+    timeout-minutes: 60
+    steps:
+      # The same pinned actions as changes-digest.yml; no credential is kept in the checkout.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      # Node 22 for this job only: the Claude Code CLI requires it (package.json's engines allow >=22.12.0).
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.3
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      # Pinned; the npm package installs the native binary (https://code.claude.com/docs/en/setup#install-with-npm).
+      - name: Install the Claude Code CLI
+        run: |
+          npm install --global --no-fund --no-audit @anthropic-ai/claude-code@2.1.287
+          claude --version
+
+      # Both credentials are set on this step only, as in changes-digest.yml, and the code keeps them apart: gh runs
+      # without the Claude token (digest.mjs runGh), and the CLI's environment is an allowlist without the GitHub token
+      # (claude-cli.js childEnv). replay.mjs asks GitHub whether the repository is public before reading anything.
+      - name: Replay twice with one cache, the second pass without a model call for a cached pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/replay"
+          node scripts/changes/replay.mjs --periods builtin --cache "$root/cache" --out "$root/first"
+          node scripts/changes/replay.mjs --periods builtin --cache "$root/cache" --out "$root/second"
+          recalls=$(jq -r '.cachedReCalls' "$root/second/report.json")
+          if [ "$recalls" != '0' ]; then
+            echo "::error::The second replay asked the model about $recalls pull requests the first pass had cached; it must ask about none."
+            exit 1
+          fi
+          echo "::notice::First pass: $(jq -r '.calls.total' "$root/first/report.json") model calls; second pass: $(jq -r '.calls.total' "$root/second/report.json"), retrying $(jq -r '.uncachedRetries' "$root/second/report.json") pull requests the first could not cache."
+
+      # The two reports, for the exit test's record. always(): a failed pass keeps what it wrote.
+      # v7.0.2: https://github.com/actions/upload-artifact/releases/tag/v7.0.2
+      - name: Keep both replay reports as an artifact
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: changes-replay-attempt-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/replay/first
+            ${{ runner.temp }}/replay/second
+          retention-days: 30

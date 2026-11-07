@@ -78,6 +78,55 @@ export function cachedRouteProblems(entry, { mergeSha, contract }) {
   return problems;
 }
 
+/** The claims stage's finite menu (docs/plans/RISE-CHANGES.md, Claims) and the fields a quote may come from. */
+export const CLAIM_MENU = Object.freeze({
+  kind: Object.freeze(['behavior', 'performance', 'interface', 'security', 'process', 'docs']),
+  status: Object.freeze(['shipped', 'flagged', 'partial', 'reverted', 'pending']),
+  field: Object.freeze(['body', 'title', 'commit', 'issue'])
+});
+/** At most 12 claims a pull request, each text at most 300 characters and each quote at most 1,000 (code points). */
+export const CLAIM_LIMITS = Object.freeze({ claims: 12, text: 300, quote: 1000 });
+
+/** A claims cache file on the data branch: `cache/claims/<mergeSha>.json`. */
+export const CLAIMS_CACHE_SCHEMA = 'syberlabs.changes-claims-cache/v1';
+/** 12 claims at their bounds, every character escaped, stay under this; a larger file is not read. */
+export const CLAIMS_CACHE_BYTES = 128 * 1024;
+
+const CLAIM_ID = /^cl_[0-9a-f]{12}$/;
+const codePoints = text => Array.from(text).length;
+const isOffset = value => Number.isInteger(value) && value >= 0 && value <= LIMITS.fullBody;
+const isSpan = span => {
+  const indexed = isObject(span) && (span.field === 'commit' || span.field === 'issue');
+  return isObject(span) && sameKeys(span, indexed ? ['field', 'index', 'start', 'end', 'text'] : ['field', 'start', 'end', 'text'])
+    && CLAIM_MENU.field.includes(span.field) && (!indexed || (Number.isInteger(span.index) && span.index >= 0))
+    && isOffset(span.start) && isOffset(span.end) && span.start < span.end
+    && typeof span.text === 'string' && span.text.length > 0 && codePoints(span.text) <= CLAIM_LIMITS.quote;
+};
+const isClaim = claim => isObject(claim) && sameKeys(claim, ['id', 'text', 'kind', 'status', 'span'])
+  && typeof claim.id === 'string' && CLAIM_ID.test(claim.id)
+  && typeof claim.text === 'string' && claim.text.trim().length > 0 && codePoints(claim.text) <= CLAIM_LIMITS.text
+  && CLAIM_MENU.kind.includes(claim.kind) && CLAIM_MENU.status.includes(claim.status) && isSpan(claim.span);
+
+/**
+ * What is wrong with a parsed claims cache file's shape for this merge SHA under this contract hash; empty when it is
+ * exactly `{ schema, mergeSha, contract, claims, gap, at }` with that SHA and hash, 1 to 12 claims of the admitted
+ * shape, `gap` a boolean and an ISO time. The shape alone admits nothing: the claims stage re-admits every claim against
+ * the pull request's text (scripts/changes/claims.js), since the files sit on a public branch.
+ */
+export function cachedClaimsProblems(entry, { mergeSha, contract }) {
+  if (!isObject(entry) || !sameKeys(entry, ['schema', 'mergeSha', 'contract', 'claims', 'gap', 'at'])) return ['A claims cache file has exactly schema, mergeSha, contract, claims, gap, at'];
+  const problems = [];
+  if (entry.schema !== CLAIMS_CACHE_SCHEMA) problems.push(`schema is not ${CLAIMS_CACHE_SCHEMA}`);
+  if (entry.mergeSha !== mergeSha) problems.push('mergeSha is not the merge it is filed under');
+  if (entry.contract !== contract) problems.push('contract is not the claims stage’s current contract');
+  if (!Array.isArray(entry.claims) || entry.claims.length < 1 || entry.claims.length > CLAIM_LIMITS.claims || !entry.claims.every(isClaim)) {
+    problems.push(`claims is not 1 to ${CLAIM_LIMITS.claims} claims of { id, text, kind, status, span }`);
+  }
+  if (typeof entry.gap !== 'boolean') problems.push('gap is not true or false');
+  if (!isIso(entry.at)) problems.push('at is not an ISO time');
+  return problems;
+}
+
 export function pullUrl(number, repo = REPOSITORY) {
   return `https://github.com/${repo}/pull/${number}`;
 }

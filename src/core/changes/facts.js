@@ -7,8 +7,8 @@
  */
 
 /**
- * Bumped whenever a rule here changes a field the router reads (scripts/changes/route-context.js): it is part of the
- * route cache's contract hash, so no route judged on the old facts is reused.
+ * Bumped whenever a rule here changes a field the router or the claims stage reads (scripts/changes/route-context.js,
+ * claims-context.js): it is part of both caches' contract hashes, so nothing judged on the old facts is reused.
  */
 export const FACTS_VERSION = 1;
 
