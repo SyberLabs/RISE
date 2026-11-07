@@ -118,6 +118,27 @@ describe('replay.mjs', () => {
     expect([three.cachedReCalls, three.uncachedRetries]).toEqual([1, 0]);
   });
 
+  it('counts the claims a repair recovered, per pull request and in all', async () => {
+    const dir = scratch();
+    const periods = join(dir, 'periods.json');
+    writeFileSync(periods, JSON.stringify({ periods: [WEEK] }));
+    const fake = fakeAsk();
+    const bound = { text: 'One turn at every bound comes to 5,820 characters.', kind: 'behavior', status: 'shipped', field: 'body' };
+    const ask = async request => {
+      const given = await fake.ask(request);
+      if (request.system !== CLAIMS_SYSTEM || !quotedPull(request.prompt).title.startsWith(TITLE_655)) return given;
+      if (request.prompt.includes('<dropped_for_a_number>')) return JSON.stringify({ claims: [{ ...bound, quote: 'One turn at every bound comes to 5,820 characters, so the newest turn always fits.' }] });
+      return JSON.stringify({ claims: [...JSON.parse(given).claims, { ...bound, quote: 'so the newest turn always fits.' }] });
+    };
+    const lines = [];
+    const report = await main(['--periods', periods, '--cache', join(dir, 'cache'), '--out', join(dir, 'out')], { gh: fakeGh(), ask, log: line => lines.push(line) });
+    expect(report.pulls['655']).toMatchObject({ recovered: 1, dropped: ['claim 3: its text says "One", which its quote does not'] });
+    expect(Object.entries(report.pulls).filter(([, pull]) => pull.recovered !== 0).map(([number]) => number)).toEqual(['655']);
+    expect(report.recovered).toBe(1);
+    expect(report.calls.claims).toBe(report.periods[0].claimed.length + 1);
+    expect(lines).toContain('Claims recovered by a repair: 1');
+  });
+
   it('stops before reading a pull request or asking a model when the repository is not public', async () => {
     const dir = scratch();
     const { ask, calls } = fakeAsk();

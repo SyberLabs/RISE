@@ -4,7 +4,9 @@
  * for word in the field it names (line endings read as LF), code computes its span from the first occurrence, every
  * number in the claim's text must be in the quote, and kind and status come from the menu. A body section that says
  * something is not verified, not done or pending must be quoted by a pending or flagged claim; when none does, the
- * pull request is asked once more, and a gap still left is recorded, never filled by code. A pull request's admitted
+ * pull request is asked once more, and a gap still left is recorded, never filled by code. A claim dropped for a number
+ * its quote does not hold is listed in that same repair, or in one of its own, for a wider quote or the claim without
+ * the number, and admitted again by the same rules: at most two calls a pull request. A pull request's admitted
  * claims are kept by merge SHA and reused while the contract hash holds and every claim re-admits against its text.
  */
 import { createHash } from 'node:crypto';
@@ -77,7 +79,7 @@ function admitOne(given, card, repo) {
   if (times > 1) return { reason: `its quote occurs ${times} times in the ${given.field}; quote enough words to be found once` };
   const stated = new Set(mentionsIn(quote).map(mention => mention.value));
   const unstated = mentionsIn(given.text).find(mention => !stated.has(mention.value));
-  if (unstated) return { reason: `its text says "${unstated.written}", which its quote does not` };
+  if (unstated) return { reason: `its text says "${unstated.written}", which its quote does not`, unstated: { text: given.text, quote: given.quote, field: given.field, ...(indexed ? { index } : {}) } };
   const start = codePoints(source.slice(0, at));
   const end = start + codePoints(quote);
   const span = indexed ? { field: given.field, index, start, end, text: quote } : { field: given.field, start, end, text: quote };
@@ -86,7 +88,9 @@ function admitOne(given, card, repo) {
 
 /**
  * The claims admitted from one answer for this card, in the order given, and a line for each claim dropped;
- * `readable` is false, with nothing admitted, when the answer is not one JSON object `{"claims": [...]}`.
+ * `unstated` is each claim dropped for a number its quote does not hold, `{ claim, text, quote, field, index? }`, with
+ * its place in the answer. `readable` is false, with nothing admitted, when the answer is not one JSON object
+ * `{"claims": [...]}`.
  */
 export function admitClaims(text, card, { repo }) {
   let given;
@@ -95,18 +99,20 @@ export function admitClaims(text, card, { repo }) {
   } catch {
     given = undefined;
   }
-  if (!Array.isArray(given)) return { readable: false, claims: [], dropped: [] };
+  if (!Array.isArray(given)) return { readable: false, claims: [], dropped: [], unstated: [] };
   const claims = [];
   const dropped = [];
+  const unstated = [];
   given.slice(0, CLAIM_LIMITS.claims).forEach((entry, at) => {
-    const { claim, reason } = admitOne(entry, card, repo);
+    const { claim, reason, unstated: numbered } = admitOne(entry, card, repo);
     if (claim && claims.some(earlier => earlier.id === claim.id)) dropped.push(`claim ${at + 1}: it repeats the span of an earlier claim`);
     else if (claim) claims.push(claim);
     else dropped.push(`claim ${at + 1}: ${reason}`);
+    if (numbered) unstated.push({ claim: at + 1, ...numbered });
   });
   const past = CLAIM_LIMITS.claims + 1;
   if (given.length >= past) dropped.push(`${given.length === past ? `claim ${past}` : `claims ${past} to ${given.length}`}: past the ${CLAIM_LIMITS.claims}-claim limit`);
-  return { readable: true, claims, dropped };
+  return { readable: true, claims, dropped, unstated };
 }
 
 /** A heading line's level and text: an ATX heading has its level, a label line (wholly bold, or ending in a colon) 7. */
@@ -213,9 +219,20 @@ function refusalOf(verdict, caveats) {
   return lines;
 }
 
-const repairOf = (request, answer, refusal) => ({
+/**
+ * The one repair: the refusal, then each claim dropped for a number quoted as data; a whole answer again when the first
+ * needs one, else only those claims. An answer holds at most CLAIM_LIMITS.claims, so the list is bounded by it.
+ */
+const repairOf = (request, answer, refusal, unstated, whole) => ({
   system: request.system,
-  prompt: [request.prompt, '', 'Your previous answer, quoted as data:', '', quoted('previous_answer', answer), '', 'RISE refused it:', ...refusal.map(line => `- ${line}`), '', 'Answer again with the whole JSON object.'].join('\n')
+  prompt: [
+    request.prompt, '', 'Your previous answer, quoted as data:', '', quoted('previous_answer', answer), '', 'RISE refused it:', ...refusal.map(line => `- ${line}`), '',
+    ...(unstated.length ? [
+      'These claims were dropped because their text states a number their quote does not, quoted as data:', '', quoted('dropped_for_a_number', unstated), '',
+      'For each, give either a wider quote, copied exactly from the same field, that holds every number in its text, or the same claim without the number. Never state a number its quote does not.', ''
+    ] : []),
+    whole ? 'Answer again with the whole JSON object.' : 'Answer with one JSON object {"claims": [...]} holding only those claims, each repaired or left out.'
+  ].join('\n')
 });
 
 const uncovered = (card, claims) => caveatsOf(card, claims).filter(caveat => !caveat.covered).length;
@@ -225,7 +242,7 @@ async function claimOne({ card, ask, model, repo, contract, readCached, now, log
   const text = await readCached(card.mergeSha);
   if (text !== null) {
     const cached = readClaimsCache(text, card, { repo, contract });
-    if (cached.claims) return { number: card.number, mergeSha: card.mergeSha, fromCache: true, claims: cached.claims, dropped: [], caveats: cached.caveats, gap: cached.caveats.some(caveat => !caveat.covered), calls: 0 };
+    if (cached.claims) return { number: card.number, mergeSha: card.mergeSha, fromCache: true, claims: cached.claims, dropped: [], caveats: cached.caveats, gap: cached.caveats.some(caveat => !caveat.covered), calls: 0, recovered: 0 };
     log(`Claims cache: ${card.mergeSha.slice(0, 12)} ignored (${cached.problem}); #${card.number} is claimed afresh`);
   }
   const request = buildClaimsRequest(card);
@@ -239,25 +256,37 @@ async function claimOne({ card, ask, model, repo, contract, readCached, now, log
     }
   };
   const first = await attempt(request);
-  const result = verdict => {
+  const result = (verdict, recovered = 0) => {
     const caveats = caveatsOf(card, verdict.claims);
-    return { number: card.number, mergeSha: card.mergeSha, fromCache: false, claims: verdict.claims, dropped: verdict.dropped, caveats, gap: caveats.some(caveat => !caveat.covered), calls, readable: verdict.readable };
+    return { number: card.number, mergeSha: card.mergeSha, fromCache: false, claims: verdict.claims, dropped: verdict.dropped, caveats, gap: caveats.some(caveat => !caveat.covered), calls, readable: verdict.readable, recovered };
   };
   if (first.failed !== undefined) {
     log(`Claims: #${card.number} has no claim: its call failed (${first.failed})`);
     return result({ readable: false, claims: [], dropped: [] });
   }
   let verdict = admitClaims(first.answer, card, { repo });
+  let recovered = 0;
   const caveats = caveatsOf(card, verdict.claims);
-  if (!verdict.readable || verdict.claims.length === 0 || caveats.some(caveat => !caveat.covered)) {
+  const whole = !verdict.readable || verdict.claims.length === 0 || caveats.some(caveat => !caveat.covered);
+  // One repair at most, carrying the caveat refusal and the claims dropped for a number together: two calls a pull request.
+  if (whole || verdict.unstated.length) {
     const refusal = refusalOf(verdict, caveats);
     refused({ stage: 'claims', pull: card.number, attempt: 1, refusal, answer: String(first.answer ?? '') });
-    const second = await attempt(repairOf(request, String(first.answer ?? ''), refusal));
+    const second = await attempt(repairOf(request, String(first.answer ?? ''), refusal, verdict.unstated, whole));
     const repaired = second.failed === undefined ? admitClaims(second.answer, card, { repo }) : null;
-    // The repair replaces the first answer only when it admits a claim and leaves no more sections unquoted.
-    if (repaired?.readable && repaired.claims.length > 0 && uncovered(card, repaired.claims) <= uncovered(card, verdict.claims)) verdict = repaired;
+    // A repair that cannot be read or admits nothing changes nothing. A whole answer replaces the first only when it
+    // leaves no more sections unquoted; a list of the dropped claims only adds new spans, within the claim limit.
+    const fresh = repaired?.readable ? repaired.claims.filter(claim => !verdict.claims.some(kept => kept.id === claim.id)) : [];
+    if (whole && repaired?.readable && repaired.claims.length > 0 && uncovered(card, repaired.claims) <= uncovered(card, verdict.claims)) {
+      recovered = fresh.length;
+      verdict = repaired;
+    } else if (!whole && fresh.length > 0) {
+      const added = fresh.slice(0, CLAIM_LIMITS.claims - verdict.claims.length);
+      recovered = added.length;
+      verdict = { ...verdict, claims: [...verdict.claims, ...added] };
+    }
   }
-  const done = result(verdict);
+  const done = result(verdict, recovered);
   if (!done.readable) log(`Claims: #${card.number} has no claim: its answer could not be read, even asked once more`);
   else if (done.claims.length === 0) log(`Claims: #${card.number} has no claim: every claim it gave was dropped`);
   else if (done.gap) {
@@ -285,10 +314,11 @@ async function pool(items, limit, work) {
 
 /**
  * Each card's claims, in the cards' order, at most four calls at once: `{ number, mergeSha, fromCache, claims, dropped,
- * caveats: [{ heading, start, end, covered }], gap }`. `cache` holds a new cache file for each card claimed this run
- * with at least one claim admitted, marked `gap` when a caveat section is left unquoted; never one read from the cache.
- * `calls` counts the model calls made, `repairs` those asked once more. Each answer that needed a repair is passed to
- * `refused` (rejected.json).
+ * caveats: [{ heading, start, end, covered }], gap, recovered }`. `cache` holds a new cache file for each card claimed
+ * this run with at least one claim admitted, marked `gap` when a caveat section is left unquoted; never one read from
+ * the cache. `calls` counts the model calls made, `repairs` those asked once more, `recovered` the claims a repair
+ * admitted at a span the first answer did not (0 for a card read from the cache). Each answer that needed a repair is
+ * passed to `refused` (rejected.json).
  */
 export async function claimCards({ cards, ask, model, repo, readCached = async () => null, now, log, refused = () => {} }) {
   const contract = claimsContract({ model });
@@ -299,7 +329,8 @@ export async function claimCards({ cards, ask, model, repo, readCached = async (
   const repairs = done.filter(one => one.calls === 2).length;
   const fromCache = done.filter(one => one.fromCache).length;
   const gaps = done.filter(one => one.gap).length;
-  log(`Claims: ${plural(calls, 'call')}, ${plural(repairs, 'repair')}; ${fromCache} of ${cards.length} pull requests from the cache; ${gaps} with a caveat gap`);
-  const results = done.map(({ number, mergeSha, fromCache: cached, claims, dropped, caveats, gap }) => ({ number, mergeSha, fromCache: cached, claims, dropped, caveats, gap }));
-  return { results, cache, calls, repairs };
+  const recovered = done.reduce((sum, one) => sum + one.recovered, 0);
+  log(`Claims: ${plural(calls, 'call')}, ${plural(repairs, 'repair')}, ${plural(recovered, 'claim')} recovered; ${fromCache} of ${cards.length} pull requests from the cache; ${gaps} with a caveat gap`);
+  const results = done.map(({ number, mergeSha, fromCache: cached, claims, dropped, caveats, gap, recovered: added }) => ({ number, mergeSha, fromCache: cached, claims, dropped, caveats, gap, recovered: added }));
+  return { results, cache, calls, repairs, recovered };
 }

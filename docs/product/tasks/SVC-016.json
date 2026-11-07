@@ -1,0 +1,40 @@
+{
+  "id": "SVC-016",
+  "title": "Claims dropped for a number get one repair asking for a wider quote",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "When an answer drops claims because their text states a number their quote does not hold, the repair lists those claims (their place, text, quote, field and index) quoted as data with < escaped, and asks for each either a wider exact quote from the same field holding every number in its text, or the same claim without the number.",
+    "A pull request makes at most two claims calls: when the caveat repair is also needed, the list is folded into it (a whole answer again, taken by the caveat rule); otherwise the repair asks only for the listed claims and each admitted at a new span is added within the 12-claim limit, never replacing one.",
+    "Every repaired claim passes the same admission: no claim is admitted without each of its numbers in its quote, a repair that keeps the number on the same narrow quote is refused, a duplicate of an existing span is refused, and the caveat coverage is recomputed; a repair that cannot be read or admits nothing changes nothing.",
+    "Each result, claims.json and the replay's report.json count recovered claims per pull request and in all; CLAIMS_CONTEXT_VERSION is bumped so no claim cached under the old repair is reused.",
+    "Tested with a fake model, including three of the Phase 1 replay's 141 number drops rebuilt on their recorded bodies; docs/plans/RISE-CHANGES.md, Claims, states the rule and the 141-of-148 case."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "scripts/changes/claims.test.js",
+      "date": "2026-11-07",
+      "note": "Branch changes/claims-number-repair from origin/main 2c7f3599, local (Windows, not pushed, no model call, no dispatch): npx vitest run scripts/changes/ src/core/changes/: 19 files, 377 passed, 1 skipped (the symbolic-link case Windows cannot create); node --test scripts/changes/digest.test.mjs: 5 passed; node scripts/ci-hygiene.mjs clean; npm run docs:diagram leaves ARCHITECTURE.md unchanged; no new test file. Red first: 12 failed (unstated list, context version 2, the summary log line, the number repair tests, the replay's recovered count) before claims.js, claims-context.js and replay.mjs changed; green after, plus the run-digest --claims log line updated. Red again on purpose: the repair triggered only by a caveat gap (number drops ignored): 5 failed (wider quote recovered, narrow quote refused and numberless admitted, unreadable or empty or duplicate changes nothing, the three replay cases, the replay count), restored, green. Cases pinned: 'Cuts load time from 2.1 s to 0.9 s.' quoting 'Cuts load time' is dropped then recovered from a wider quote; a repair keeping the number on the same quote is refused; one without the number is admitted; a caveat gap with a number drop makes exactly 2 calls (one folded repair, no third even when the repair still drops); 12 dropped claims listed with '<' escaped. Three real drops of replay run 42316694794, rebuilt on their bodies in hidden-caveats.json (the report keeps the drop reason, not the claim, so text and narrow quote are reconstructed around the dropped number): #660 '120' recovered by a wider quote, #672 '2.1.287' admitted without the number, #686 '18' refused when kept on the same quote."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-07T00:30:00.000Z",
+      "summary": "Opened and claimed as P2-B of the RISE Changes v2 Phase 2 plan (owner-approved)."
+    },
+    {
+      "date": "2026-11-07T00:38:49.119Z",
+      "summary": "Number repair built on branch changes/claims-number-repair, tests recorded"
+    }
+  ],
+  "updatedAt": "2026-11-07T00:38:49.119Z",
+  "revision": 2,
+  "summary": "The claims stage's one repair also lists the claims it dropped for a number outside their quote and asks for a wider quote or the claim without the number, admitted by the same rules, at most two calls a pull request.",
+  "blocker": null
+}

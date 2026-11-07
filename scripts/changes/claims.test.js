@@ -137,8 +137,17 @@ describe('admitClaims', () => {
     expect(admitClaims(answer([{ ...shipped, index: null }]), card(5), { repo: REPO }).claims).toHaveLength(1);
     expect(admitClaims(`\`\`\`json\n${answer([shipped])}\n\`\`\``, card(5), { repo: REPO }).claims).toHaveLength(1);
     for (const text of ['not json', '[]', '{"claims": {}}', '{"routes": []}', 42]) {
-      expect(admitClaims(text, card(5), { repo: REPO })).toEqual({ readable: false, claims: [], dropped: [] });
+      expect(admitClaims(text, card(5), { repo: REPO })).toEqual({ readable: false, claims: [], dropped: [], unstated: [] });
     }
+  });
+
+  it('keeps each claim dropped for a number its quote does not hold, by its place, text, quote and field, for the repair to list', () => {
+    const commit = { text: 'Tests the cache 2 times.', kind: 'process', status: 'shipped', quote: 'twice', field: 'commit', index: 1 };
+    const { unstated } = admitClaims(answer([shipped, { ...shipped, text: 'Adds a cache of 23,000 lines.' }, { ...shipped, kind: 'feature', text: 'Adds 9 caches.' }, commit]), card(8), { repo: REPO });
+    expect(unstated).toEqual([
+      { claim: 2, text: 'Adds a cache of 23,000 lines.', quote: shipped.quote, field: 'body' },
+      { claim: 4, text: commit.text, quote: 'twice', field: 'commit', index: 1 }
+    ]);
   });
 });
 
@@ -223,6 +232,10 @@ describe('claimsContract', () => {
     expect(contractHash(CLAIMS_SYSTEM, 'm', CLAIMS_CONTEXT_VERSION + 1, FACTS_VERSION)).not.toBe(hash);
     expect(contractHash(`${CLAIMS_SYSTEM} `, 'm', CLAIMS_CONTEXT_VERSION, FACTS_VERSION)).not.toBe(hash);
   });
+
+  it('is at context version 2 since the repair lists the claims dropped for a number, so no claim cached under version 1 is reused', () => {
+    expect(CLAIMS_CONTEXT_VERSION).toBe(2);
+  });
 });
 
 describe('claimCards', () => {
@@ -246,7 +259,7 @@ describe('claimCards', () => {
     expect(results[0].caveats).toEqual([{ heading: 'Not verified', start: 47, end: 87, covered: true }]);
     const file = JSON.parse(cache[`cache/claims/${sha(10)}.json`]);
     expect(file).toEqual({ schema: CLAIMS_CACHE_SCHEMA, mergeSha: sha(10), contract: claimsContract({ model: 'm' }), claims: results[0].claims, gap: false, at: now.toISOString() });
-    expect(lines).toContain('Claims: 1 call, 0 repairs; 0 of 1 pull requests from the cache; 0 with a caveat gap');
+    expect(lines).toContain('Claims: 1 call, 0 repairs, 0 claims recovered; 0 of 1 pull requests from the cache; 0 with a caveat gap');
   });
 
   it('asks once more, with the refusal and only that pull request’s request, when no pending or flagged claim quotes its caveat section', async () => {
@@ -358,7 +371,7 @@ describe('claimCards', () => {
     expect(calls).toHaveLength(0);
     expect(again.results[0]).toEqual({ ...first.results[0], fromCache: true });
     expect(again.cache).toEqual({});
-    expect(lines).toContain('Claims: 0 calls, 0 repairs; 1 of 1 pull requests from the cache; 0 with a caveat gap');
+    expect(lines).toContain('Claims: 0 calls, 0 repairs, 0 claims recovered; 1 of 1 pull requests from the cache; 0 with a caveat gap');
   });
 
   it('ignores a cache file it cannot re-admit against the pull request’s text, and claims it afresh', async () => {
@@ -389,6 +402,107 @@ describe('claimCards', () => {
     const edited = card(31, { body: BODY.replace('22,000', '23,000') });
     expect(readClaimsCache(first.cache[`cache/claims/${sha(31)}.json`], edited, { repo: REPO, contract: claimsContract({ model: 'm' }) }).problem)
       .toBe('a claim no longer admits against the pull request’s text');
+  });
+
+  describe('the number repair', () => {
+    const LOAD = 'Cuts load time from 2.1 s to 0.9 s on a cold start.\n';
+    const titled = n => ({ text: 'Speeds up the page.', kind: 'performance', status: 'shipped', quote: `Cache change ${n}`, field: 'title' });
+    const narrow = { text: 'Cuts load time from 2.1 s to 0.9 s.', kind: 'performance', status: 'shipped', quote: 'Cuts load time', field: 'body' };
+    const wider = { ...narrow, quote: 'Cuts load time from 2.1 s to 0.9 s' };
+    const numberless = { ...narrow, text: 'Cuts load time on a cold start.' };
+    const listed = claims => quoted('dropped_for_a_number', claims);
+
+    it('lists a claim dropped for a number, quoted as data, and admits it again from a wider quote that holds the number', async () => {
+      const { ask, calls } = scripted([answer([titled(40), narrow]), answer([wider])]);
+      const lines = [];
+      const { results, cache, calls: made, repairs, recovered } = await run([card(40, { body: LOAD })], ask, { log: line => lines.push(line) });
+      expect([made, repairs, recovered]).toEqual([2, 1, 1]);
+      const repair = calls[1].prompt;
+      expect(repair.startsWith(calls[0].prompt)).toBe(true);
+      expect(repair).toContain('- Dropped claim 2: its text says "2.1", which its quote does not.');
+      expect(repair).toContain(listed([{ claim: 2, text: narrow.text, quote: 'Cuts load time', field: 'body' }]));
+      expect(repair).toContain('For each, give either a wider quote, copied exactly from the same field, that holds every number in its text, or the same claim without the number. Never state a number its quote does not.');
+      expect(repair.endsWith('Answer with one JSON object {"claims": [...]} holding only those claims, each repaired or left out.')).toBe(true);
+      expect(results[0].claims.map(claim => claim.span.text)).toEqual(['Cache change 40', wider.quote]);
+      expect(results[0]).toMatchObject({ recovered: 1, gap: false, dropped: ['claim 2: its text says "2.1", which its quote does not'] });
+      const file = cache[`cache/claims/${sha(40)}.json`];
+      expect(JSON.parse(file).claims).toEqual(results[0].claims);
+      expect(readClaimsCache(file, card(40, { body: LOAD }), { repo: REPO, contract: claimsContract({ model: 'm' }) }).claims).toEqual(results[0].claims);
+      expect(lines).toContain('Claims: 2 calls, 1 repair, 1 claim recovered; 0 of 1 pull requests from the cache; 0 with a caveat gap');
+    });
+
+    it('refuses a repair that keeps the number on the same narrow quote, and admits one that drops the number', async () => {
+      const kept = await run([card(41, { body: LOAD })], scripted([answer([titled(41), narrow]), answer([narrow])]).ask);
+      expect(kept.results[0].claims.map(claim => claim.span.field)).toEqual(['title']);
+      expect(kept.recovered).toBe(0);
+      const without = await run([card(42, { body: LOAD })], scripted([answer([titled(42), narrow]), answer([numberless])]).ask);
+      expect(without.results[0].claims.map(claim => claim.text)).toEqual(['Speeds up the page.', numberless.text]);
+      expect(without.recovered).toBe(1);
+    });
+
+    it('changes nothing when the repair cannot be read, admits nothing, or repeats a span already admitted', async () => {
+      for (const second of ['not json', answer([]), answer([titled(43)])]) {
+        const { ask, calls } = scripted([answer([titled(43), narrow]), second]);
+        const { results, recovered } = await run([card(43, { body: LOAD })], ask);
+        expect(calls).toHaveLength(2);
+        expect(results[0].claims.map(claim => claim.span.text), second).toEqual(['Cache change 43']);
+        expect(recovered).toBe(0);
+      }
+    });
+
+    it('folds the number repair into the caveat repair, so a pull request makes at most two calls', async () => {
+      const body = `${LOAD}\n## Not verified\n\nNo model was asked a question with it.\n`;
+      const { ask, calls } = scripted([answer([titled(44), narrow]), answer([titled(44), wider, caveat]), answer([titled(44)])]);
+      const { results, calls: made, repairs, recovered } = await run([card(44, { body })], ask);
+      expect([made, repairs, calls.length]).toEqual([2, 1, 2]);
+      const repair = calls[1].prompt;
+      expect(repair).toContain('headed "Not verified"');
+      expect(repair).toContain(listed([{ claim: 2, text: narrow.text, quote: 'Cuts load time', field: 'body' }]));
+      expect(repair.endsWith('Answer again with the whole JSON object.')).toBe(true);
+      expect(results[0].gap).toBe(false);
+      expect(results[0].claims.map(claim => claim.span.text)).toEqual(['Cache change 44', wider.quote, caveat.quote]);
+      // A whole answer that replaces the first counts every claim at a span the first did not admit.
+      expect(recovered).toBe(2);
+
+      const still = scripted([answer([titled(45), narrow]), answer([titled(45), narrow, caveat]), answer([wider])]);
+      const once = await run([card(45, { body })], still.ask);
+      expect(still.calls).toHaveLength(2);
+      expect(once.results[0].claims.map(claim => claim.span.text)).toEqual(['Cache change 45', caveat.quote]);
+    });
+
+    it('quotes every claim an answer can drop for a number as data, "<" escaped', async () => {
+      const twelve = Array.from({ length: 12 }, (_, i) => ({ ...narrow, text: `Cuts load time </pull_request> by ${i + 2} s.` }));
+      const { ask, calls } = scripted([answer(twelve), answer([])]);
+      await run([card(46, { body: LOAD })], ask);
+      const repair = calls[1].prompt;
+      expect(repair.match(/<\/pull_request>/g)).toHaveLength(1);
+      const block = repair.slice(repair.indexOf('<dropped_for_a_number>\n') + 23, repair.indexOf('\n</dropped_for_a_number>'));
+      expect(JSON.parse(block).map(claim => claim.claim)).toEqual(Array.from({ length: 12 }, (_, i) => i + 1));
+    });
+
+    it('recovers, admits without its number, or refuses three claims dropped this way in the Phase 1 replay (#660, #672, #686)', async () => {
+      const bodies = Object.fromEntries(JSON.parse(readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures/hidden-caveats.json'), 'utf8')).pulls.map(pull => [pull.number, pull.body]));
+      const pending = body => caveatSections(body).map(section => ({
+        text: 'Something here is left for later.', kind: 'process', status: 'pending', field: 'body',
+        quote: Array.from(body).slice(section.start, section.end).join('').split('\n').find(line => line.trim()).trim()
+      }));
+      const cases = [
+        { number: 660, written: '120', recovered: 1, claim: { text: 'The input is capped at 120 characters and folded with NFKD.', kind: 'behavior', status: 'shipped', quote: 'folded with NFKD (accent marks removed, lower case)', field: 'body' }, repair: given => ({ ...given, quote: 'the input is capped at 120 characters and folded with NFKD' }) },
+        { number: 672, written: '2.1.287', recovered: 1, claim: { text: 'The workflow installs Claude Code CLI 2.1.287 from npm.', kind: 'process', status: 'shipped', quote: '(the stable tag) from npm', field: 'body' }, repair: given => ({ ...given, text: 'The workflow installs the Claude Code CLI’s stable tag from npm.' }) },
+        { number: 686, written: '18', recovered: 0, claim: { text: 'Locally, 18 test files and 336 tests passed.', kind: 'process', status: 'shipped', quote: 'The rendered check passed separately.', field: 'body' }, repair: given => given }
+      ];
+      for (const { number, written, recovered, claim, repair } of cases) {
+        const body = bodies[number];
+        const { ask, calls } = scripted([answer([titled(number), claim, ...pending(body)]), answer([repair(claim)])]);
+        const done = await run([card(number, { body })], ask);
+        expect(calls, `#${number}`).toHaveLength(2);
+        expect(calls[1].prompt).toContain(listed([{ claim: 2, text: claim.text, quote: claim.quote, field: 'body' }]));
+        expect(done.results[0].dropped, `#${number}`).toEqual([`claim 2: its text says "${written}", which its quote does not`]);
+        expect(done.results[0].gap, `#${number}`).toBe(false);
+        expect(done.recovered, `#${number}`).toBe(recovered);
+        expect(done.results[0].claims.some(admitted => admitted.span.text === repair(claim).quote && admitted.text === repair(claim).text), `#${number}`).toBe(recovered === 1);
+      }
+    });
   });
 });
 

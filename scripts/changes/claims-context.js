@@ -3,11 +3,12 @@
  * request, read from its fact card (src/core/changes/facts.js), and the request built from it. Pure, so the same card
  * gives the same request. Every contributor field is quoted as data with "<" escaped. A change to what it shows, or to
  * the system text, changes the claims cache's contract hash (scripts/changes/claims.js), so no claim judged under the
- * old contract is reused; bump CLAIMS_CONTEXT_VERSION for a change to the fields.
+ * old contract is reused; bump CLAIMS_CONTEXT_VERSION for a change to the fields or to the repair request
+ * (`repairOf` in scripts/changes/claims.js).
  */
 import { quoted } from './route.js';
 
-export const CLAIMS_CONTEXT_VERSION = 1;
+export const CLAIMS_CONTEXT_VERSION = 2;
 export const CLAIMS_CONTEXT_FIELDS = Object.freeze(['title', 'labels', 'areas', 'flags', 'body', 'commits', 'issues']);
 
 /** Line endings read as LF, the only normalization a quote is compared under. */
