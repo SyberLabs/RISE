@@ -11,10 +11,11 @@
  * Routes and claims are read from `<cache>/cache/{routes,claims}/` and each new one is written there, so a second
  * replay with the same cache makes no model call. Writes `report.json` to the out directory, which must be new or
  * empty: per pull request its claims, per period and per run the model calls by role, the input and output bytes, the
- * cache hits, and the caveat check of the hidden-caveat pull requests. Each pull request a stage asks the model about is
- * counted once a stage: in `cachedReCalls` when its cache file was there when the replay started (a cache that did not
- * hold), else in `uncachedRetries` (on a first pass over an empty cache, every pull request asked; on a second, those the
- * first could not cache, whose call failed or admitted nothing). Never commits, pushes or opens an issue.
+ * cache hits, the claims a repair recovered (each pull request's `recovered` and their sum), and the caveat check of the
+ * hidden-caveat pull requests. Each pull request a stage asks the model about is counted once a stage: in
+ * `cachedReCalls` when its cache file was there when the replay started (a cache that did not hold), else in
+ * `uncachedRetries` (on a first pass over an empty cache, every pull request asked; on a second, those the first could
+ * not cache, whose call failed or admitted nothing). Never commits, pushes or opens an issue.
  */
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -143,11 +144,13 @@ export async function replay({ gh, ask, periods, hidden, cacheDir, model = MODEL
   });
   log(`Replay: ${plural(calls.router, 'router call')}, ${plural(calls.claims, 'claims call')}; ${hits.routes} routes and ${hits.claims} claims from the cache`);
   log(`Pull requests asked although their cache file was there: ${cachedReCalls}; asked with none there: ${uncachedRetries}`);
+  const recovered = Object.values(pulls).reduce((sum, pull) => sum + pull.recovered, 0);
+  log(`Claims recovered by a repair: ${recovered}`);
   log(`Bytes: router ${inputBytes.router} in, ${outputBytes.router} out; claims ${inputBytes.claims} in, ${outputBytes.claims} out`);
   for (const entry of hiddenCaveats) {
     log(`Hidden caveat #${entry.number}: ${entry.found ? `${entry.covered ? 'quoted' : 'NOT quoted'} by ${plural(entry.pendingOrFlagged, 'pending or flagged claim')}${entry.included ? '' : ' (not included)'}` : 'not merged in any period replayed'}`);
   }
-  return { ...report, calls: { ...calls, total: calls.router + calls.claims }, cachedReCalls, uncachedRetries, inputBytes, outputBytes, cacheHits: hits, hiddenCaveats, pulls };
+  return { ...report, calls: { ...calls, total: calls.router + calls.claims }, cachedReCalls, uncachedRetries, inputBytes, outputBytes, cacheHits: hits, recovered, hiddenCaveats, pulls };
 }
 
 export async function main(argv, { env = process.env, log = line => console.log(line), gh = runGh, ask } = {}) {

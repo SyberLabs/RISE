@@ -605,11 +605,13 @@ describe('runDigest with --claims', () => {
     expect(result.files['2026-10-14.json']).toBe(fixture('2026-10-14.json'));
     const claims = JSON.parse(result.claims);
     expect(claims.pulls.map(pull => pull.number).sort()).toEqual([...included].sort());
+    expect(claims.recovered).toBe(0);
+    expect(Object.keys(claims)).toEqual(['repo', 'model', 'contract', 'calls', 'repairs', 'recovered', 'pulls']);
     expect(claims.pulls.every(pull => pull.claims.length > 0 && !pull.gap)).toBe(true);
     expect(claims.pulls.find(pull => pull.number === 655).claims.find(claim => claim.status === 'pending').span.text)
       .toContain('No real model has been asked a question with the block.');
     expect(Object.keys(result.cache).filter(path => path.startsWith('cache/claims/'))).toHaveLength(included.length);
-    expect(lines).toContain(`Claims: ${included.length} calls, 0 repairs; 0 of ${included.length} pull requests from the cache; 0 with a caveat gap`);
+    expect(lines).toContain(`Claims: ${included.length} calls, 0 repairs, 0 claims recovered; 0 of ${included.length} pull requests from the cache; 0 with a caveat gap`);
   });
 
   it('asks every other role exactly what the run without --claims asks: the composer is not given the claims', async () => {
