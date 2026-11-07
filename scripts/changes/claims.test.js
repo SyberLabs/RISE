@@ -299,7 +299,7 @@ describe('claimCards', () => {
     expect(lines).toContain('Claims: #13 has no claim: its answer could not be read, even asked once more');
   });
 
-  it('keeps the first answer when the repair admits no claim or leaves more caveat sections unquoted, and records the gap', async () => {
+  it('never removes an admitted claim: a repair that admits none, or only claims at spans already kept, leaves the first answer’s claims and records the gap', async () => {
     const facts = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta'];
     const body = `${facts.map(name => `Fact ${name} holds.`).join('\n')}\n\n## Not verified\n\nNo model was asked.\n`;
     const eight = facts.map(name => ({ text: `Fact ${name} holds.`, kind: 'behavior', status: 'shipped', quote: `Fact ${name} holds.`, field: 'body' }));
@@ -319,6 +319,39 @@ describe('claimCards', () => {
     const kept = await run([card(17, { body: two })], worse.ask);
     expect(kept.results[0].claims).toHaveLength(3);
     expect(kept.results[0].caveats.map(caveat => caveat.covered)).toEqual([true, false]);
+  });
+
+  it('keeps all of the first answer’s claims and adds a folded repair’s fixed claim, with the gap recomputed', async () => {
+    const facts = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta'];
+    const body = `${facts.map(name => `Fact ${name} holds.`).join('\n')}\nCuts load time from 2.1 s to 0.9 s on a cold start.\n\n## Not verified\n\nNo model was asked.\n`;
+    const eight = facts.map(name => ({ text: `Fact ${name} holds.`, kind: 'behavior', status: 'shipped', quote: `Fact ${name} holds.`, field: 'body' }));
+    const narrow = { text: 'Cuts load time from 2.1 s to 0.9 s.', kind: 'performance', status: 'shipped', quote: 'Cuts load time', field: 'body' };
+    const { ask, calls } = scripted([answer([...eight, narrow]), answer([{ ...narrow, quote: 'Cuts load time from 2.1 s to 0.9 s' }])]);
+    const { results, recovered } = await run([card(19, { body })], ask);
+    expect(calls).toHaveLength(2);
+    expect(calls[1].prompt.endsWith('Answer again with the whole JSON object.')).toBe(true);
+    expect(results[0].claims.map(claim => claim.span.text)).toEqual([...facts.map(name => `Fact ${name} holds.`), 'Cuts load time from 2.1 s to 0.9 s']);
+    expect(recovered).toBe(1);
+    expect(results[0]).toMatchObject({ gap: true, caveats: [{ heading: 'Not verified', covered: false }] });
+
+    const covering = scripted([answer([...eight, narrow]), answer([{ text: 'No model was asked.', kind: 'behavior', status: 'pending', quote: 'No model was asked.', field: 'body' }])]);
+    const fixed = await run([card(19, { body })], covering.ask);
+    expect(fixed.results[0].claims).toHaveLength(9);
+    expect(fixed.results[0].gap).toBe(false);
+  });
+
+  it('keeps, past 12, a repair claim that quotes an unquoted caveat section first, then the first answer’s claims in order, then the other repair claims', async () => {
+    const names = Array.from({ length: 12 }, (_, i) => `fact${i}`);
+    const body = `${names.map(name => `Fact ${name} holds.`).join('\n')}\nOne more fact holds.\n\n## Not verified\n\nNo model was asked.\n`;
+    const twelve = names.map(name => ({ text: `Fact ${name} holds.`, kind: 'behavior', status: 'shipped', quote: `Fact ${name} holds.`, field: 'body' }));
+    const extra = { text: 'One more fact holds.', kind: 'behavior', status: 'shipped', quote: 'One more fact holds.', field: 'body' };
+    const pendingClaim = { text: 'No model was asked.', kind: 'behavior', status: 'pending', quote: 'No model was asked.', field: 'body' };
+    const { ask } = scripted([answer(twelve), answer([extra, pendingClaim])]);
+    const { results, recovered, cache } = await run([card(47, { body })], ask);
+    expect(results[0].claims.map(claim => claim.span.text)).toEqual([...twelve.slice(0, 11).map(claim => claim.quote), pendingClaim.quote]);
+    expect(results[0].gap).toBe(false);
+    expect(recovered).toBe(1);
+    expect(readClaimsCache(cache[`cache/claims/${sha(47)}.json`], card(47, { body }), { repo: REPO, contract: claimsContract({ model: 'm' }) }).claims).toEqual(results[0].claims);
   });
 
   it('bounds the repair: at most five sections named, each by its offsets and its heading quoted and cut, the previous answer quoted', async () => {
@@ -468,6 +501,29 @@ describe('claimCards', () => {
       const once = await run([card(45, { body })], still.ask);
       expect(still.calls).toHaveLength(2);
       expect(once.results[0].claims.map(claim => claim.span.text)).toEqual(['Cache change 45', caveat.quote]);
+    });
+
+    it('adds repair claims only up to 12 in all, and the file written re-admits to the same claims', async () => {
+      const names = Array.from({ length: 11 }, (_, i) => `fact${i}`);
+      const body = `${names.map(name => `Fact ${name} holds.`).join('\n')}\n${LOAD}`;
+      const eleven = names.map(name => ({ text: `Fact ${name} holds.`, kind: 'behavior', status: 'shipped', quote: `Fact ${name} holds.`, field: 'body' }));
+      const widest = { ...narrow, quote: 'Cuts load time from 2.1 s to 0.9 s on a cold start.' };
+      const { ask, calls } = scripted([answer([...eleven, narrow]), answer([wider, widest])]);
+      const { results, recovered, cache } = await run([card(48, { body })], ask);
+      expect(calls).toHaveLength(2);
+      expect(results[0].claims).toHaveLength(12);
+      expect(results[0].claims.at(-1).span.text).toBe(wider.quote);
+      expect(recovered).toBe(1);
+      expect(readClaimsCache(cache[`cache/claims/${sha(48)}.json`], card(48, { body }), { repo: REPO, contract: claimsContract({ model: 'm' }) }).claims).toEqual(results[0].claims);
+    });
+
+    it('asks for the whole answer again when every claim was dropped for a number, and makes no third call', async () => {
+      const { ask, calls } = scripted([answer([narrow]), answer([wider]), answer([numberless])]);
+      const { results, recovered } = await run([card(49, { body: LOAD })], ask);
+      expect(calls).toHaveLength(2);
+      expect(calls[1].prompt.endsWith('Answer again with the whole JSON object.')).toBe(true);
+      expect(results[0].claims.map(claim => claim.span.text)).toEqual([wider.quote]);
+      expect(recovered).toBe(1);
     });
 
     it('quotes every claim an answer can drop for a number as data, "<" escaped', async () => {

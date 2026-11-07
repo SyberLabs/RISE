@@ -605,6 +605,8 @@ describe('runDigest with --claims', () => {
     expect(result.files['2026-10-14.json']).toBe(fixture('2026-10-14.json'));
     const claims = JSON.parse(result.claims);
     expect(claims.pulls.map(pull => pull.number).sort()).toEqual([...included].sort());
+    expect(claims.recovered).toBe(0);
+    expect(Object.keys(claims)).toEqual(['repo', 'model', 'contract', 'calls', 'repairs', 'recovered', 'pulls']);
     expect(claims.pulls.every(pull => pull.claims.length > 0 && !pull.gap)).toBe(true);
     expect(claims.pulls.find(pull => pull.number === 655).claims.find(claim => claim.status === 'pending').span.text)
       .toContain('No real model has been asked a question with the block.');

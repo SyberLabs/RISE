@@ -221,6 +221,6 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     files: { [`${id}.json`]: serialize(digest), 'index.json': serialize(next) },
     cache,
     issue: issueFor(digest, { supersedes: replaced?.id, repository: repo, name: customer?.product.name, unrouted }),
-    ...(claimed ? { claims: serialize({ repo, model, contract: claimsContract({ model }), calls: claimed.calls, repairs: claimed.repairs, pulls: claimed.results }) } : {})
+    ...(claimed ? { claims: serialize({ repo, model, contract: claimsContract({ model }), calls: claimed.calls, repairs: claimed.repairs, recovered: claimed.recovered, pulls: claimed.results }) } : {})
   };
 }

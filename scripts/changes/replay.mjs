@@ -12,9 +12,10 @@
  * replay with the same cache makes no model call. Writes `report.json` to the out directory, which must be new or
  * empty: per pull request its claims, per period and per run the model calls by role, the input and output bytes, the
  * cache hits, the claims a repair recovered (each pull request's `recovered` and their sum), and the caveat check of the
- * hidden-caveat pull requests. Each pull request a stage asks the model about is counted once a stage: in `cachedReCalls` when its cache file was there when the replay started (a cache that did not
- * hold), else in `uncachedRetries` (on a first pass over an empty cache, every pull request asked; on a second, those the
- * first could not cache, whose call failed or admitted nothing). Never commits, pushes or opens an issue.
+ * hidden-caveat pull requests. Each pull request a stage asks the model about is counted once a stage: in
+ * `cachedReCalls` when its cache file was there when the replay started (a cache that did not hold), else in
+ * `uncachedRetries` (on a first pass over an empty cache, every pull request asked; on a second, those the first could
+ * not cache, whose call failed or admitted nothing). Never commits, pushes or opens an issue.
  */
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';

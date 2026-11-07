@@ -167,12 +167,12 @@ export function caveatSections(body) {
   return sections;
 }
 
+/** Whether a claim is pending or flagged and its body span overlaps the section. */
+const quotesSection = (claim, section) => claim.span.field === 'body' && CAVEAT_STATUSES.has(claim.status) && claim.span.start < section.end && claim.span.end > section.start;
+
 /** Each caveat section of the card's body, with whether a pending or flagged claim's span overlaps it. */
 function caveatsOf(card, claims) {
-  return caveatSections(card.body).map(section => ({
-    ...section,
-    covered: claims.some(claim => claim.span.field === 'body' && CAVEAT_STATUSES.has(claim.status) && claim.span.start < section.end && claim.span.end > section.start)
-  }));
+  return caveatSections(card.body).map(section => ({ ...section, covered: claims.some(claim => quotesSection(claim, section)) }));
 }
 
 /** The contract hash a cached claim must carry: the claims system text, the model, the context's version, the fact rules' version. */
@@ -235,7 +235,21 @@ const repairOf = (request, answer, refusal, unstated, whole) => ({
   ].join('\n')
 });
 
-const uncovered = (card, claims) => caveatsOf(card, claims).filter(caveat => !caveat.covered).length;
+/**
+ * The first answer's claims with a repair's admitted claims; a repair never removes an admitted claim. A repair claim at
+ * a span already kept takes that claim's place only when it quotes a caveat section the kept claims leave unquoted; one
+ * at a new span is added. Past CLAIM_LIMITS.claims, the new claims that quote an unquoted section are kept first, then
+ * the first answer's claims in order, then the other new claims; what is kept stays in answer order.
+ */
+function withRepair(card, kept, repaired) {
+  const open = caveatsOf(card, kept).filter(caveat => !caveat.covered);
+  const quotesOpen = claim => open.some(section => quotesSection(claim, section));
+  const byId = new Map(repaired.map(claim => [claim.id, claim]));
+  const base = kept.map(claim => (byId.has(claim.id) && quotesOpen(byId.get(claim.id)) ? byId.get(claim.id) : claim));
+  const fresh = repaired.filter(claim => !kept.some(earlier => earlier.id === claim.id));
+  const ranked = new Set([...fresh.filter(quotesOpen), ...base, ...fresh.filter(claim => !quotesOpen(claim))].slice(0, CLAIM_LIMITS.claims));
+  return { claims: [...base, ...fresh].filter(claim => ranked.has(claim)), added: fresh.filter(claim => ranked.has(claim)).length };
+}
 
 /** One card's claims: from its cache file when that re-admits, else from at most two calls. */
 async function claimOne({ card, ask, model, repo, contract, readCached, now, log, refused }) {
@@ -274,16 +288,11 @@ async function claimOne({ card, ask, model, repo, contract, readCached, now, log
     refused({ stage: 'claims', pull: card.number, attempt: 1, refusal, answer: String(first.answer ?? '') });
     const second = await attempt(repairOf(request, String(first.answer ?? ''), refusal, verdict.unstated, whole));
     const repaired = second.failed === undefined ? admitClaims(second.answer, card, { repo }) : null;
-    // A repair that cannot be read or admits nothing changes nothing. A whole answer replaces the first only when it
-    // leaves no more sections unquoted; a list of the dropped claims only adds new spans, within the claim limit.
-    const fresh = repaired?.readable ? repaired.claims.filter(claim => !verdict.claims.some(kept => kept.id === claim.id)) : [];
-    if (whole && repaired?.readable && repaired.claims.length > 0 && uncovered(card, repaired.claims) <= uncovered(card, verdict.claims)) {
-      recovered = fresh.length;
-      verdict = repaired;
-    } else if (!whole && fresh.length > 0) {
-      const added = fresh.slice(0, CLAIM_LIMITS.claims - verdict.claims.length);
-      recovered = added.length;
-      verdict = { ...verdict, claims: [...verdict.claims, ...added] };
+    // A repair that cannot be read or admits nothing changes nothing.
+    if (repaired?.readable && repaired.claims.length > 0) {
+      const merged = withRepair(card, verdict.claims, repaired.claims);
+      recovered = merged.added;
+      verdict = { readable: true, claims: merged.claims, dropped: verdict.readable ? verdict.dropped : repaired.dropped, unstated: [] };
     }
   }
   const done = result(verdict, recovered);
