@@ -113,3 +113,58 @@ describe.each(['changes-digest.yml', 'changes-public.yml'])('the run’s artifac
     expect(commit).not.toMatch(/rejected|run\.json/);
   });
 });
+
+describe('the replay workflow', () => {
+  const replay = read('changes-replay.yml');
+  const digest = read('changes-digest.yml');
+  const run = step(replay, 'Replay twice with one cache, the second pass without a model call for a cached pull request');
+
+  it('is dispatched by hand only, never on a pull request, a schedule, a push or a call', () => {
+    expect(replay).toMatch(/^on:\n {2}workflow_dispatch:\n\n/m);
+    expect(replay).not.toMatch(/pull_request|schedule|push:|workflow_call/);
+  });
+
+  it('may only read the repository', () => {
+    expect(replay).toMatch(/^permissions:\n {2}contents: read\n {2}pull-requests: read\n\n/m);
+    expect(digest).toMatch(/^ {2}pull-requests: read\n/m);
+    expect(replay).not.toMatch(/: write/);
+  });
+
+  it('installs Node and the Claude Code CLI exactly as the digest does, with the same pinned actions', () => {
+    const uses = workflow => workflow.match(/uses: actions\/(?:checkout|setup-node)@[0-9a-f]{40} # v\d+/g);
+    expect(uses(replay)).toEqual([...new Set(uses(digest))]);
+    expect(replay).toContain('node-version: 22.23.3\n');
+    const lines = workflow => step(workflow, 'Install the Claude Code CLI').split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));
+    expect(lines(replay)).toEqual(lines(digest));
+    expect(lines(replay)).toHaveLength(4);
+    expect(replay).toContain('persist-credentials: false');
+  });
+
+  it('gives the model token and the GitHub token to the replay step alone, from the secret and github.token', () => {
+    expect(run).toContain('GH_TOKEN: ${{ github.token }}\n');
+    expect(run).toContain('CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n');
+    expect(replay.replace(run, '')).not.toMatch(/GH_TOKEN|CLAUDE_CODE_OAUTH_TOKEN|secrets\./);
+  });
+
+  it('replays twice with one cache directory and fails when the second pass called the model for a pull request the first cached', () => {
+    const passes = run.match(/node scripts\/changes\/replay\.mjs --periods builtin --cache "\$root\/cache" --out "\$root\/(first|second)"/g);
+    expect(passes).toEqual([
+      'node scripts/changes/replay.mjs --periods builtin --cache "$root/cache" --out "$root/first"',
+      'node scripts/changes/replay.mjs --periods builtin --cache "$root/cache" --out "$root/second"'
+    ]);
+    expect(run).toMatch(/set -euo pipefail\n/);
+    expect(run).toContain('recalls=$(jq -r \'.cachedReCalls\' "$root/second/report.json")\n');
+    expect(run).toMatch(/if \[ "\$recalls" != '0' \]; then\n[^\n]*::error::[^\n]*\n {12}exit 1\n/);
+    expect(run).toContain('jq -r \'.uncachedRetries\' "$root/second/report.json"');
+    // The one gate is the cached re-calls: a retry of a pull request the first pass could not cache never fails the job.
+    expect(run.match(/^ {10}if /gm)).toEqual(['          if ']);
+  });
+
+  it('uploads both reports, even after a failure, for 30 days, with the pinned upload action', () => {
+    const upload = step(replay, 'Keep both replay reports as an artifact');
+    expect(upload).toMatch(/if: always\(\)\n/);
+    expect(upload).toContain('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2\n');
+    expect(upload.match(/^ {12}\S.*$/gm)).toEqual(['            ${{ runner.temp }}/replay/first', '            ${{ runner.temp }}/replay/second']);
+    expect(upload).toMatch(/retention-days: 30/);
+  });
+});

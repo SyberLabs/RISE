@@ -2,7 +2,7 @@
 /**
  * RISE Changes: one digest of what merged into main (docs/plans/RISE-CHANGES.md).
  *
- *   node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run] [--supersede <id>] [--figures kit] [--repo owner/name] [--cache <dir>]
+ *   node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run] [--supersede <id>] [--figures kit] [--repo owner/name] [--cache <dir>] [--claims]
  *
  * Reads GitHub through `gh` (GH_TOKEN) and asks Claude through the Claude
  * Code CLI (CLAUDE_CODE_OAUTH_TOKEN, passed to the CLI's environment only).
@@ -17,7 +17,9 @@
  * otherwise) and marks that digest superseded in the index. `--cache` names a
  * read-only copy of the data branch: a route cached there by merge SHA is reused,
  * and each new route is written to `cache/routes/<mergeSha>.json` in the out
- * directory.
+ * directory. `--claims` also claims each included pull request (claims.js),
+ * reusing `cache/claims/<mergeSha>.json` from the cache, and writes claims.json
+ * and each new claims cache file to the out directory.
  */
 import { execFile, spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
@@ -32,7 +34,7 @@ import { runDigest, serializeRejected } from './run-digest.js';
 import { cacheReader } from './route.js';
 import { openRenderCheck } from './render-check.mjs';
 import { serialize } from '../../src/core/changes/write.js';
-import { DIGEST_ID } from '../../src/core/changes/contract.js';
+import { CLAIMS_CACHE_BYTES, DIGEST_ID } from '../../src/core/changes/contract.js';
 
 const GH_MAX_BUFFER = 64 * 1024 * 1024;
 const CLAUDE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -43,7 +45,7 @@ export function parseOptions(argv) {
     args: argv,
     options: {
       since: { type: 'string' }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false }, supersede: { type: 'string' },
-      figures: { type: 'string' }, repo: { type: 'string' }, cache: { type: 'string' }
+      figures: { type: 'string' }, repo: { type: 'string' }, cache: { type: 'string' }, claims: { type: 'boolean', default: false }
     },
     strict: true,
     allowPositionals: false
@@ -55,7 +57,7 @@ export function parseOptions(argv) {
   const repo = values.repo || undefined;
   const name = repo === undefined ? null : repositoryNameProblems(repo);
   if (name) throw new Error(name);
-  return { since: values.since || undefined, out: values.out, dryRun: values['dry-run'], supersede, figures, repo, cache: values.cache || undefined };
+  return { since: values.since || undefined, out: values.out, dryRun: values['dry-run'], supersede, figures, repo, cache: values.cache || undefined, claims: values.claims };
 }
 
 /** `gh` with these arguments, without the Claude credential: its stdout, or an error carrying its stderr. */
@@ -103,7 +105,7 @@ export async function runProcess({ command, args, input, files, env, timeoutMs =
   }
 }
 
-async function outDirectory(out) {
+export async function outDirectory(out) {
   const dir = out ? resolve(out) : await mkdtemp(join(tmpdir(), 'rise-changes-out-'));
   await mkdir(dir, { recursive: true });
   if ((await readdir(dir)).length) throw new Error(`${dir} is not empty; give --out a new directory`);
@@ -136,7 +138,10 @@ export async function main(argv, { env = process.env, log = line => console.log(
     log(`Kept refused answer ${rejected.length} in rejected.json for the run's artifact.`);
   };
   try {
-    result = await digest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck, readCache: cacheReader(options.cache), onRefused });
+    result = await digest({
+      gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck,
+      readCache: cacheReader(options.cache), claims: options.claims, readClaimsCache: cacheReader(options.cache, { directory: 'claims', bytes: CLAIMS_CACHE_BYTES }), onRefused
+    });
   } finally {
     if (renderer) await (await renderer.catch(() => null))?.close();
   }
@@ -151,8 +156,11 @@ export async function main(argv, { env = process.env, log = line => console.log(
     await writeFile(join(dir, path), text, 'utf8');
   }
   await writeFile(join(dir, 'issue.json'), serialize(result.issue), 'utf8');
+  if (result.claims !== undefined) await writeFile(join(dir, 'claims.json'), result.claims, 'utf8');
   await writeFile(join(dir, 'run.json'), serialize({ written: true, id: result.id }), 'utf8');
-  log(`Wrote ${Object.keys(result.files).join(' and ')} and ${Object.keys(result.cache).length} route cache files to ${dir}.`);
+  const routeFiles = Object.keys(result.cache).filter(path => path.startsWith('cache/routes/')).length;
+  const claimsFiles = result.claims === undefined ? '' : `, claims.json and ${Object.keys(result.cache).length - routeFiles} claims cache files`;
+  log(`Wrote ${Object.keys(result.files).join(' and ')} and ${routeFiles} route cache files${claimsFiles} to ${dir}.`);
   return result;
 }
 

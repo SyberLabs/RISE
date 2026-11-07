@@ -137,7 +137,7 @@ function wordNumber(tokens, i, text) {
  * all "22000"; "1.50" is "1.5"; "09" is "9") and `role` is "year", "month" or "day" for a part of a date expression
  * (an ISO date, or a number beside a month name), else null. Units are never read, so 1.5 s and 1,500 ms differ.
  */
-function mentionsIn(text) {
+export function mentionsIn(text) {
   const source = String(text);
   const tokens = [...source.matchAll(TOKEN)].map(match => ({ text: match[0], start: match.index, end: match.index + match[0].length, iso: match[1] === undefined ? null : [match[1], match[2], match[3]] }));
   const gap = (a, b) => source.slice(tokens[a].end, tokens[b].start);

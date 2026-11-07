@@ -112,21 +112,22 @@ export function routeContract({ product = RISE_PRODUCT, model }) {
 }
 
 /**
- * The route cache under `<dir>/cache/routes/` as `mergeSha => text | null`, or undefined without a directory. Only a
- * 40-hex merge SHA names a file; a missing file, one larger than ROUTE_CACHE_BYTES, or one reached through a link
- * anywhere below `dir` (its real path is not `<real dir>/cache/routes/<mergeSha>.json`) is no cache, and is not logged.
- * What a file says is admitted by the router (cachedRouteProblems), never here.
+ * A cache under `<dir>/cache/<directory>/` (the routes, unless the claims stage names its own) as
+ * `mergeSha => text | null`, or undefined without a directory. Only a 40-hex merge SHA names a file; a missing file,
+ * one larger than `bytes`, or one reached through a link anywhere below `dir` (its real path is not
+ * `<real dir>/cache/<directory>/<mergeSha>.json`) is no cache, and is not logged. What a file says is admitted by its
+ * stage (cachedRouteProblems, the claims stage's re-admission), never here.
  */
-export function cacheReader(dir) {
+export function cacheReader(dir, { directory = 'routes', bytes = ROUTE_CACHE_BYTES } = {}) {
   if (dir === undefined) return undefined;
   return async mergeSha => {
     if (!/^[0-9a-f]{40}$/.test(mergeSha)) return null;
     try {
-      const name = join('cache', 'routes', `${mergeSha}.json`);
+      const name = join('cache', directory, `${mergeSha}.json`);
       const path = await realpath(resolve(dir, name));
       if (path !== join(await realpath(resolve(dir)), name)) return null;
       const info = await stat(path);
-      if (!info.isFile() || info.size > ROUTE_CACHE_BYTES) return null;
+      if (!info.isFile() || info.size > bytes) return null;
       return await readFile(path, 'utf8');
     } catch {
       return null;
@@ -153,7 +154,8 @@ const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one :
  * Each card's route, in the order given: from its cache file (`readCached(mergeSha)`, the text or null) when that file
  * admits under the current contract, else from the router, asked once for every card not cached and once more, alone,
  * for those whose answer could not be read; a card still unread takes FALLBACK_ROUTE itself. `cache` holds a new cache
- * file for each route the router gave this run and no other: never a fallback, never one read from the cache. Each
+ * file for each route the router gave this run and no other: never a fallback, never one read from the cache;
+ * `fromCache` the numbers whose route was read from the cache. Each
  * answer with a route that could not be read is passed to `refused` (rejected.json) with the cards it left unread.
  */
 export async function routeCandidates({ cards, ask, model, product = RISE_PRODUCT, readCached = async () => null, now, log, refused = () => {} }) {
@@ -167,6 +169,7 @@ export async function routeCandidates({ cards, ask, model, product = RISE_PRODUC
     else log(`Route cache: ${card.mergeSha.slice(0, 12)} ignored (${problem}); #${card.number} is routed afresh`);
   }
   const fromCache = routes.size;
+  const cached = new Set(routes.keys());
   const cache = {};
   let pending = cards.filter(card => !routes.has(card.number));
   let calls = 0;
@@ -190,7 +193,7 @@ export async function routeCandidates({ cards, ask, model, product = RISE_PRODUC
     const retry = retried ? `, 1 a retry for ${plural(retried, 'pull request')} whose answer could not be read` : '';
     log(`Router: ${plural(calls, 'call')}${retry}; ${fromCache} of ${cards.length} routes from the cache`);
   }
-  return { routes: new Map(cards.map(card => [card.number, routes.get(card.number) ?? FALLBACK_ROUTE])), cache };
+  return { routes: new Map(cards.map(card => [card.number, routes.get(card.number) ?? FALLBACK_ROUTE])), cache, fromCache: cards.filter(card => cached.has(card.number)).map(card => card.number) };
 }
 
 const SIGNIFICANCE = { major: 2, notable: 1, minor: 0 };
